@@ -2,55 +2,63 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const SYSTEM_PROMPT = `You are Luminary, creating an in-depth birth chart analysis. This is NOT a horoscope — this is a deep personal reading that helps someone understand WHO THEY ARE through their chart.
-
-Write like you are sitting across from this person, telling them things about themselves that make them feel deeply seen. Reference specific placements but always translate them into lived experience.
-
-STRUCTURE (output as JSON):
-- bigThree: Explain their Sun, Moon, and Rising as a combination. Not three separate paragraphs — how do these three energies work TOGETHER? What is the tension? What is the gift? (4-5 sentences)
-- element: What is their elemental balance? Are they mostly fire, earth, air, water? What does that mean for how they move through life? (2-3 sentences)
-- strengths: What are their 3 biggest natural gifts based on their chart? Be specific — not generic "you are creative." Reference placements. (3 short paragraphs)
-- challenges: What are their 2 biggest growth edges? Where do they get stuck? Be honest but compassionate. (2 short paragraphs)
-- loveStyle: How do they love based on Venus sign, Mars sign, and Moon sign? What do they need in a partner? What triggers them? (3-4 sentences)
-- careerGifts: Based on their Midheaven energy (use 10th house from Ascendant), Saturn placement, and Jupiter placement — what are they built for professionally? (2-3 sentences)  
-- currentChapter: Based on their age and major transits, what life chapter are they in? What is the universe asking of them right now? (3-4 sentences)
-- soulMantra: One deeply personal mantra that captures the essence of their chart. Not generic. Reference their element and modality. Must feel like it was written for only this person.
-
-NO DEGREE SYMBOLS. No technical jargon without translation. Every placement mentioned must be immediately followed by what it FEELS like to live with that placement.
-
-Output raw JSON only: {"bigThree":"...","element":"...","strengths":["...","...","..."],"challenges":["...","..."],"loveStyle":"...","careerGifts":"...","currentChapter":"...","soulMantra":"..."}`;
-
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { chartText, name, age } = body;
+    const { chartText, name, sunSign, moonSign, risingSign, unknownTime } = body;
 
     if (!chartText) {
       return Response.json({ error: "No chart data" }, { status: 400 });
     }
 
-    console.log(JSON.stringify({ event: "BIRTHCHART_REQUEST", name: name || "unknown", ts: new Date().toISOString() }));
+    const risingNote = unknownTime
+      ? "\nIMPORTANT: Birth time is UNKNOWN. Do NOT reference Rising sign, Ascendant, houses, or Midheaven. Moon sign may be approximate."
+      : "";
+
+    const prompt = `You are an elite astrologer giving ${name} a private birth chart reading. Write like you're sitting across from them.${risingNote}
+
+NATAL CHART: ${chartText}
+
+Output ONLY raw JSON:
+{
+  "bigThree": "2-3 sentences about their Sun (${sunSign}), Moon (${moonSign})${unknownTime ? "" : `, Rising (${risingSign})`} combination. What this creates as a personality. What it FEELS like to be them.",
+  "element": "1-2 sentences about their elemental balance and what it means for daily life.",
+  "strengths": ["<strength 1 — 2 sentences>", "<strength 2>", "<strength 3>"],
+  "challenges": ["<challenge 1 — 2 sentences>", "<challenge 2>"],
+  "loveStyle": "3-4 sentences about how they love based on Venus, Mars, Moon. Specific.",
+  "careerGifts": "2-3 sentences about natural career talents from Mercury, Saturn, Midheaven${unknownTime ? ' (skip Midheaven)' : ''}.",
+  "currentChapter": "2-3 sentences about what this moment in their life is about based on current transits.",
+  "soulMantra": "One powerful sentence. Must feel written ONLY for this chart."
+}
+
+Every placement you mention must be immediately followed by what it FEELS like. No jargon without translation. Make them feel deeply seen. OUTPUT ONLY RAW JSON.`;
 
     const message = await client.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 2000,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: `Generate a deep birth chart analysis for ${name || "this person"}${age ? `, age ${age}` : ""}.\n\nNATAL CHART: ${chartText}\n\nOutput raw JSON only.` }],
+      messages: [{ role: "user", content: prompt }],
     });
 
     const text = message.content[0]?.text || "";
-    const fb = text.indexOf("{");
-    const lb = text.lastIndexOf("}");
-    if (fb === -1 || lb === -1) {
-      return Response.json({ error: "No JSON in response" }, { status: 500 });
-    }
-    const parsed = JSON.parse(text.substring(fb, lb + 1));
+    const firstBrace = text.indexOf("{");
+    const lastBrace = text.lastIndexOf("}");
 
-    console.log(JSON.stringify({ event: "BIRTHCHART_COMPLETE", name: name || "unknown", ts: new Date().toISOString() }));
+    if (firstBrace === -1 || lastBrace === -1) {
+      return Response.json({ error: "No JSON in birth chart response" }, { status: 500 });
+    }
+
+    const parsed = JSON.parse(text.substring(firstBrace, lastBrace + 1));
+
+    console.log(JSON.stringify({
+      event: "birthchart",
+      name: name || "unknown",
+      sun: sunSign,
+      timestamp: new Date().toISOString(),
+    }));
 
     return Response.json(parsed);
   } catch (error) {
-    console.error("Birth chart error:", error);
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("Birth chart API error:", error);
+    return Response.json({ error: error.message || "Birth chart analysis failed" }, { status: 500 });
   }
 }
