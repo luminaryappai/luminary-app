@@ -114,9 +114,12 @@ OUTPUT ONLY RAW JSON.`;
 };
 
 /* ═══════════ SCREENS ═══════════ */
-const Landing=({onStart,onAdmin})=>{
+const Landing=({onStart,onAdmin,onLogin})=>{
   const tapRef=useRef(0),tmRef=useRef(null);
   const[fi,setFi]=useState(0);const touchRef=useRef(0);
+  const[showLogin,setShowLogin]=useState(false);
+  const[loginIG,setLoginIG]=useState("");
+  const[loginPW,setLoginPW]=useState("");
   useEffect(()=>track("view",{p:"landing"}),[]);
 
   const features=[
@@ -175,6 +178,19 @@ const Landing=({onStart,onAdmin})=>{
       {/* CTA */}
       <FadeIn delay={1000}><div style={{width:"100%",maxWidth:420,marginTop:28}}>
         <button onClick={()=>{track("begin");onStart();}} style={{width:"100%",padding:"17px",border:"none",borderRadius:10,background:`linear-gradient(135deg,${K.gold},#B8942F)`,color:"#0B0F14",fontSize:14,fontWeight:600,letterSpacing:3,textTransform:"uppercase",cursor:"pointer",fontFamily:f2,boxShadow:"0 4px 24px rgba(201,168,76,.15)"}}>Get Your Reading</button>
+        
+        {!showLogin?
+          <button onClick={()=>setShowLogin(true)} style={{width:"100%",padding:"13px",border:"1px solid rgba(255,255,255,.08)",borderRadius:10,background:"transparent",color:K.dim,fontSize:12,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:f2,marginTop:10}}>I Already Have An Account</button>
+        :
+          <div style={{marginTop:12,padding:"18px 16px",background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.06)",borderRadius:12}}>
+            <input value={loginIG} onChange={e=>setLoginIG(e.target.value)} placeholder="@instagram handle" style={{width:"100%",padding:"12px 14px",background:"#0D1117",border:"1px solid #1E2A36",borderRadius:6,color:K.cream,fontSize:15,fontFamily:f2,outline:"none",boxSizing:"border-box",marginBottom:8}}/>
+            <input type="password" value={loginPW} onChange={e=>setLoginPW(e.target.value)} placeholder="Password" onKeyDown={e=>{if(e.key==="Enter"&&loginIG&&loginPW)onLogin(loginIG,loginPW);}}
+              style={{width:"100%",padding:"12px 14px",background:"#0D1117",border:"1px solid #1E2A36",borderRadius:6,color:K.cream,fontSize:15,fontFamily:f2,outline:"none",boxSizing:"border-box",marginBottom:10}}/>
+            <button onClick={()=>{if(loginIG&&loginPW)onLogin(loginIG,loginPW);}} style={{width:"100%",padding:"13px",border:"1px solid "+K.gold,borderRadius:8,background:"transparent",color:K.gold,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:f2}}>Log In</button>
+            <button onClick={()=>setShowLogin(false)} style={{width:"100%",padding:"8px",border:"none",background:"transparent",color:K.dim,fontSize:11,cursor:"pointer",fontFamily:f2,marginTop:6}}>Cancel</button>
+          </div>
+        }
+
         <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginTop:14}}>
           <div style={{width:6,height:6,borderRadius:"50%",background:K.sage,animation:"pls 2.5s ease-in-out infinite"}}/>
           <span style={{fontSize:13,color:K.dim,fontFamily:f2}}>Free · 2 minutes · No app download</span>
@@ -189,11 +205,21 @@ const Landing=({onStart,onAdmin})=>{
   </div>;
 };
 
-const InputScreen=({onSubmit})=>{
-  const[nm,setNm]=useState(""),[ig,setIg]=useState(""),[dt,setDt]=useState(""),[tm,setTm]=useState(""),[noTm,setNoTm]=useState(false);
+const InputScreen=({onSubmit,onRegister})=>{
+  const[nm,setNm]=useState(""),[ig,setIg]=useState(""),[pw,setPw]=useState(""),[dt,setDt]=useState(""),[tm,setTm]=useState(""),[noTm,setNoTm]=useState(false);
   const[cq,setCq]=useState(""),[sel,setSel]=useState(null),[show,setShow]=useState(false);
+  const[registering,setRegistering]=useState(false);
   const filt=()=>!cq||cq.length<2?[]:CITIES.filter(c=>c.n.toLowerCase().includes(cq.toLowerCase())).slice(0,10);
-  const sub=()=>{if(!nm||!dt||!sel)return;const p=dt.split("-"),hr=noTm?12:parseFloat((tm||"12:00").split(":")[0])+parseFloat((tm||"12:00").split(":")[1])/60;
+  const sub=async()=>{if(!nm||!dt||!sel||!ig||!pw)return;
+    if(pw.length<4){alert("Password must be at least 4 characters");return;}
+    // Register first
+    if(onRegister){
+      setRegistering(true);
+      const ok=await onRegister(nm,ig,pw);
+      setRegistering(false);
+      if(!ok)return;
+    }
+    const p=dt.split("-"),hr=noTm?12:parseFloat((tm||"12:00").split(":")[0])+parseFloat((tm||"12:00").split(":")[1])/60;
     onSubmit({name:nm,ig,year:+p[0],month:+p[1],day:+p[2],hour:hr-sel.tz,localHour:hr,lat:sel.la,lng:sel.ln,tz:sel.tz,city:sel.n,unknownTime:noTm});};
   const ls={fontSize:12,color:K.sage,letterSpacing:2,textTransform:"uppercase",marginBottom:6,display:"block",fontFamily:f2};
   const is={width:"100%",padding:"13px 14px",background:"#0D1117",border:"1px solid #1E2A36",borderRadius:6,color:K.cream,fontSize:16,fontFamily:f1,outline:"none",boxSizing:"border-box"};
@@ -204,6 +230,7 @@ const InputScreen=({onSubmit})=>{
     <FadeIn delay={300}><div style={{width:"100%",maxWidth:380}}>
       <div style={{marginBottom:20}}><label style={ls}>First Name</label><input style={is} placeholder="Your first name" value={nm} onChange={e=>setNm(e.target.value)}/></div>
       <div style={{marginBottom:20}}><label style={ls}>Instagram Handle</label><input style={is} placeholder="@yourusername" value={ig} onChange={e=>setIg(e.target.value)}/></div>
+      <div style={{marginBottom:20}}><label style={ls}>Create Password</label><input type="password" style={is} placeholder="4+ characters — to access your reading later" value={pw} onChange={e=>setPw(e.target.value)}/></div>
       <div style={{marginBottom:20}}><label style={ls}>Birth Date</label><input type="date" style={is} value={dt} onChange={e=>setDt(e.target.value)}/></div>
       <div style={{marginBottom:8}}><label style={ls}>Birth Time</label><input type="time" style={{...is,opacity:noTm?.3:1}} disabled={noTm} value={tm} onChange={e=>setTm(e.target.value)}/></div>
       <div style={{marginBottom:20,display:"flex",alignItems:"center",gap:8}}><input type="checkbox" id="nt" onChange={e=>setNoTm(e.target.checked)} style={{accentColor:K.gold}}/><label htmlFor="nt" style={{fontSize:13,color:K.dim,fontFamily:f2,cursor:"pointer"}}>I don't know my birth time</label></div>
@@ -212,7 +239,7 @@ const InputScreen=({onSubmit})=>{
         {sel&&<p style={{fontSize:12,color:K.sage,marginTop:4,fontFamily:f2}}>✓ {sel.n}</p>}
         {show&&filt().length>0&&!sel&&<div style={{position:"absolute",top:"100%",left:0,right:0,background:"#131920",border:"1px solid #1E2A36",borderRadius:6,maxHeight:260,overflowY:"auto",zIndex:100,marginTop:4}}>{filt().map((c,i)=><div key={i} onClick={()=>{setSel(c);setCq(c.n);setShow(false);}} style={{padding:"12px 14px",cursor:"pointer",borderBottom:"1px solid #1E2A36",color:K.cream,fontSize:15,fontFamily:f2}}>{c.n}</div>)}</div>}
       </div>
-      <button onClick={sub} style={{width:"100%",padding:"15px",background:sel?K.gold:"#333",color:sel?"#0B0F14":"#666",border:"none",borderRadius:6,fontSize:14,fontWeight:600,letterSpacing:2,textTransform:"uppercase",cursor:sel?"pointer":"default",fontFamily:f2}}>Continue</button>
+      <button onClick={sub} disabled={registering} style={{width:"100%",padding:"15px",background:(sel&&nm&&ig&&pw)?K.gold:"#333",color:(sel&&nm&&ig&&pw)?"#0B0F14":"#666",border:"none",borderRadius:6,fontSize:14,fontWeight:600,letterSpacing:2,textTransform:"uppercase",cursor:(sel&&nm&&ig&&pw)?"pointer":"default",fontFamily:f2,opacity:registering?.5:1}}>{registering?"Creating account...":"Continue"}</button>
     </div></FadeIn>
   </div>;};
 
@@ -347,14 +374,14 @@ const BirthChartDeep=({chartData,name,onBack})=>{
   </div>;};
 
 /* ─── CHAT ─── */
-const ChatView=({chartData,name,onBack})=>{
+const ChatView=({chartData,name,onBack,saveChat})=>{
   const[msgs,setMsgs]=useState([]);const[inp,setInp]=useState("");const[ld,setLd]=useState(true);const ref=useRef(null);
   const ctx=`${chartData.chartText}\nTransits: ${chartData.transitText}\nIntensity: ${chartData.intensity}/10\nTop aspects: ${chartData.topAspects.slice(0,8).join("; ")}`;
   useEffect(()=>{fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[{role:"user",content:"Chart:\n"+ctx+"\n\nQuerent: "+name+". START of conversation. Introduce yourself warmly and list what you can help with based on their specific chart."}],userName:name})}).then(r=>r.json()).then(d=>{setMsgs([{role:"assistant",text:d.reply||"Welcome! What's on your mind?"}]);setLd(false);}).catch(()=>{setMsgs([{role:"assistant",text:"Welcome, "+name+"! I have your chart ready. What would you like to explore?"}]);setLd(false);});},[]);
   useEffect(()=>{if(ref.current)ref.current.scrollTop=ref.current.scrollHeight;},[msgs,ld]);
   const send=()=>{if(!inp.trim()||ld)return;const um=inp.trim();setInp("");const up=[...msgs,{role:"user",text:um}];setMsgs(up);setLd(true);track("msg",{l:um.length});
     const am=[{role:"user",content:"Chart:\n"+ctx+"\nQuerent: "+name}];up.forEach(m=>am.push({role:m.role==="user"?"user":"assistant",content:m.text}));
-    fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:am,userName:name})}).then(r=>r.json()).then(d=>{setMsgs(p=>[...p,{role:"assistant",text:d.reply||"Let me try again."}]);setLd(false);}).catch(()=>{setMsgs(p=>[...p,{role:"assistant",text:"Connection lost. Try again?"}]);setLd(false);});};
+    fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:am,userName:name})}).then(r=>r.json()).then(d=>{const reply=d.reply||"Let me try again.";setMsgs(p=>[...p,{role:"assistant",text:reply}]);setLd(false);if(saveChat)saveChat(um,reply);}).catch(()=>{setMsgs(p=>[...p,{role:"assistant",text:"Connection lost. Try again?"}]);setLd(false);});};
   return<div style={{minHeight:"100vh",background:"#0B0F14",display:"flex",flexDirection:"column",fontFamily:f1}}>
     <div style={{padding:"16px 20px",borderBottom:"1px solid #1E2A36",display:"flex",alignItems:"center",gap:12}}><button onClick={onBack} style={{background:"none",border:"none",color:K.gold,fontSize:15,cursor:"pointer",fontFamily:f2}}>← Back</button><span style={{fontSize:10,letterSpacing:4,color:K.gold,fontFamily:f2}}>✦ LUMINARY AI ✦</span></div>
     <div ref={ref} style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>{msgs.map((m,i)=>{const u=m.role==="user";return<FadeIn key={i}><div style={{marginBottom:16,textAlign:u?"right":"left"}}><div style={{display:"inline-block",maxWidth:"85%",padding:"14px 18px",borderRadius:14,fontSize:15,lineHeight:1.8,background:u?"rgba(201,168,76,.12)":"rgba(255,255,255,.04)",color:u?K.gold:K.cream,border:"1px solid "+(u?"rgba(201,168,76,.2)":"#1E2A36"),whiteSpace:"pre-wrap"}}>{m.text}</div></div></FadeIn>;})}
@@ -391,6 +418,52 @@ export default function Luminary(){
   const[scr,setScr]=useState("landing"),[bd,setBd]=useState(null),[ans,setAns]=useState(null);
   const[chartData,setChartData]=useState(null),[weekly,setWeekly]=useState([]),[monthly,setMonthly]=useState([]);
   const[err,setErr]=useState(null);
+  const[userIG,setUserIG]=useState(null); // logged-in user's IG handle
+
+  // Check if user is already logged in (stored in localStorage)
+  useEffect(()=>{
+    try{const ig=localStorage.getItem("lum_ig");if(ig)setUserIG(ig);}catch(e){}
+    // Request notification permission on load if supported
+    if(typeof window!=="undefined"&&"Notification"in window&&Notification.permission==="default"){
+      // Don't auto-ask, we'll ask after their first reading
+    }
+  },[]);
+
+  // ── Data Bridge: save reading to backend ──
+  const saveReading=(cd,w,m)=>{
+    if(!bd?.ig)return;
+    fetch("/api/user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      action:"save",ig:bd.ig,name:bd.name,chart:cd.chart,transits:cd.transits||{},aspects:cd.aspects,intensity:cd.intensity,
+      answers:{focus:cd.focus,energy:cd.energy,seeking:cd.seeking},horoscope:{weekly:w,monthly:m},
+      birthDate:`${bd.year}-${String(bd.month).padStart(2,"0")}-${String(bd.day).padStart(2,"0")}`,
+      birthTime:bd.unknownTime?"unknown":`${Math.floor(bd.localHour||12)}:${String(Math.round(((bd.localHour||12)%1)*60)).padStart(2,"0")}`,
+      birthCity:bd.city
+    })}).catch(e=>console.error("Save failed:",e));
+  };
+
+  // ── Data Bridge: save chat message ──
+  const saveChat=(userMsg,aiMsg)=>{
+    if(!userIG&&!bd?.ig)return;
+    fetch("/api/user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      action:"chat",ig:userIG||bd?.ig,userMsg,aiMsg
+    })}).catch(()=>{});
+  };
+
+  // ── Push notification opt-in ──
+  const requestPush=()=>{
+    if(typeof window==="undefined"||!("Notification"in window))return;
+    if(Notification.permission==="granted")return;
+    Notification.requestPermission().then(p=>{
+      if(p==="granted"){
+        // Store that this user opted in
+        if(bd?.ig){
+          fetch("/api/user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+            action:"save",ig:bd.ig,pushEnabled:true
+          })}).catch(()=>{});
+        }
+      }
+    });
+  };
 
   const onBirth=d=>{setBd(d);setScr("questions");};
 
@@ -410,22 +483,76 @@ export default function Luminary(){
       if(!data)return;
       if(data.error){setErr(data.error);setScr("error");return;}
       setWeekly(data.weekly);setMonthly(data.monthly);
-      if(savedCd)track("done",{name:bd.name,ig:bd.ig,city:bd.city,sun:savedCd.chart.Sun.sign,moon:savedCd.chart.Moon.sign,rising:savedCd.chart.Ascendant?.sign||"Unknown",focus:a.focus,intensity:savedCd.intensity});
+      if(savedCd){
+        track("done",{name:bd.name,ig:bd.ig,city:bd.city,sun:savedCd.chart.Sun.sign,moon:savedCd.chart.Moon.sign,rising:savedCd.chart.Ascendant?.sign||"Unknown",focus:a.focus,intensity:savedCd.intensity});
+        // ── DATA BRIDGE: Save to backend ──
+        saveReading(savedCd,data.weekly,data.monthly);
+        // ── Request push notifications after first reading ──
+        setTimeout(requestPush,3000);
+      }
       setScr("chart_view");
     }).catch(e=>{setErr(e.message);setScr("error");});
   };
 
+  // ── Login handler ──
+  const onLogin=(ig,pw)=>{
+    fetch(`/api/user?action=login&ig=${encodeURIComponent(ig)}&pw=${encodeURIComponent(pw)}`)
+    .then(r=>r.json()).then(d=>{
+      if(d.found&&d.data){
+        setUserIG(ig);
+        try{localStorage.setItem("lum_ig",ig);}catch(e){}
+        // Restore their data
+        if(d.data.chart&&d.data.horoscope){
+          const cd={chart:d.data.chart,transits:d.data.transits||{},aspects:d.data.aspects||[],intensity:d.data.intensity||5,chartText:"",transitText:"",topAspects:[],sunElement:"",sunModality:"",unknownTime:false};
+          // Rebuild text fields
+          cd.chartText=Object.entries(d.data.chart).map(([p,v])=>`${p}: ${v.sign} ${v.deg}°`).join(", ");
+          cd.focus=d.data.answers?.focus;cd.energy=d.data.answers?.energy;cd.seeking=d.data.answers?.seeking;
+          setBd({name:d.data.name,ig:d.data.ig,city:d.data.birthCity});
+          setChartData(cd);
+          setWeekly(d.data.horoscope.weekly||[]);
+          setMonthly(d.data.horoscope.monthly||[]);
+          setScr("slides");
+        }else{
+          // User exists but no reading yet
+          setBd({name:d.data.name,ig:d.data.ig});
+          setScr("input");
+        }
+      }else if(d.error){
+        alert(d.error);
+      }else{
+        alert("No account found. Tap 'Get Your Reading' to create one.");
+      }
+    }).catch(()=>alert("Connection error. Try again."));
+  };
+
+  // ── Register handler (called during birth data entry) ──
+  const onRegister=(name,ig,pw)=>{
+    return fetch("/api/user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"register",name,ig,pw})})
+    .then(r=>r.json()).then(d=>{
+      if(d.success){
+        setUserIG(ig);
+        try{localStorage.setItem("lum_ig",ig);}catch(e){}
+        return true;
+      }else{
+        alert(d.error||"Registration failed");
+        return false;
+      }
+    }).catch(()=>{alert("Connection error");return false;});
+  };
+
   const share=()=>{const u=typeof window!=="undefined"?window.location.href:"";if(typeof navigator!=="undefined"&&navigator.share)navigator.share({title:"Luminary",text:"Get your personalized AI astrology reading",url:u}).catch(()=>{});else if(typeof navigator!=="undefined"&&navigator.clipboard?.writeText)navigator.clipboard.writeText(u).then(()=>alert("Link copied!")).catch(()=>prompt("Copy:",u));else prompt("Copy:",u);};
 
-  if(scr==="landing")return<Landing onStart={()=>setScr("input")} onAdmin={()=>setScr("admin")}/>;
+  const logout=()=>{setUserIG(null);setBd(null);setChartData(null);setWeekly([]);setMonthly([]);setScr("landing");try{localStorage.removeItem("lum_ig");}catch(e){}};
+
+  if(scr==="landing")return<Landing onStart={()=>setScr("input")} onAdmin={()=>setScr("admin")} onLogin={onLogin}/>;
   if(scr==="admin")return<Admin onBack={()=>setScr("landing")}/>;
-  if(scr==="input")return<InputScreen onSubmit={onBirth}/>;
+  if(scr==="input")return<InputScreen onSubmit={onBirth} onRegister={onRegister}/>;
   if(scr==="questions")return<Questions onSubmit={onQuestions}/>;
   if(scr==="loading")return<LoadingScreen name={bd?.name||""}/>;
   if(scr==="error")return<ErrScreen msg={err} onRetry={()=>{setErr(null);setScr("questions");}}/>;
   if(scr==="chart_view"&&chartData)return<ChartView chartData={chartData} name={bd.name} onContinue={()=>setScr("slides")}/>;
-  if(scr==="slides"&&chartData)return<SlidesView name={bd.name} chartData={chartData} weekly={weekly} monthly={monthly} onChat={()=>setScr("chat")} onShare={share} onBirthChart={()=>setScr("birthchart")}/>;
+  if(scr==="slides"&&chartData)return<SlidesView name={bd.name} chartData={chartData} weekly={weekly} monthly={monthly} onChat={()=>setScr("chat")} onShare={share} onBirthChart={()=>setScr("birthchart")} onLogout={logout}/>;
   if(scr==="birthchart"&&chartData)return<BirthChartDeep chartData={chartData} name={bd.name} onBack={()=>setScr("slides")}/>;
-  if(scr==="chat"&&chartData)return<ChatView chartData={chartData} name={bd.name} onBack={()=>setScr("slides")}/>;
-  return<Landing onStart={()=>setScr("input")} onAdmin={()=>setScr("admin")}/>;
+  if(scr==="chat"&&chartData)return<ChatView chartData={chartData} name={bd.name} onBack={()=>setScr("slides")} saveChat={saveChat}/>;
+  return<Landing onStart={()=>setScr("input")} onAdmin={()=>setScr("admin")} onLogin={onLogin}/>;
 }
