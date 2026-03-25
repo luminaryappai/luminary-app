@@ -91,6 +91,19 @@ export async function GET(request) {
     return Response.json({ users, count: users.length });
   }
 
+  // Delete user (hidden layer only)
+  if (action === "delete" && p.get("mk") === "fateh0505") {
+    const key = p.get("key");
+    if (!key) return Response.json({ error: "Key required" }, { status: 400 });
+    try {
+      if (kv) { try { await kv.del(key); } catch (e) {} }
+      store.delete(key);
+      return Response.json({ success: true, deleted: key });
+    } catch (e) {
+      return Response.json({ error: e.message }, { status: 500 });
+    }
+  }
+
   return Response.json({ error: "Invalid action" }, { status: 400 });
 }
 

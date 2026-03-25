@@ -114,16 +114,80 @@ OUTPUT ONLY RAW JSON.`;
 };
 
 /* ═══════════ SCREENS ═══════════ */
-const Landing=({onStart,onAdmin})=>{const tapRef=useRef(0),tmRef=useRef(null);useEffect(()=>track("view",{p:"landing"}),[]);
-  return<div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,background:"radial-gradient(ellipse at 50% 20%,#1B2B3A 0%,#0B0F14 70%)",fontFamily:f1}}>
-    <FadeIn><div onClick={()=>{tapRef.current++;if(tmRef.current)clearTimeout(tmRef.current);if(tapRef.current>=5){tapRef.current=0;onAdmin();return;}tmRef.current=setTimeout(()=>{tapRef.current=0;},2000);}} style={{fontSize:10,letterSpacing:6,color:K.gold,marginBottom:24,cursor:"default",userSelect:"none",padding:10,fontFamily:f2}}>✦ ✦ ✦</div></FadeIn>
-    <FadeIn delay={200}><h1 style={{fontSize:56,color:K.cream,fontWeight:300,letterSpacing:10,margin:0,textTransform:"uppercase"}}>LUMINARY</h1></FadeIn>
-    <FadeIn delay={400}><p style={{fontSize:15,color:K.gold,letterSpacing:4,marginTop:10,textTransform:"uppercase",fontFamily:f2}}>Personalized Astrology</p></FadeIn>
-    <FadeIn delay={600}><div style={{width:60,height:1,background:K.gold,opacity:.3,margin:"32px 0"}}/></FadeIn>
-    <FadeIn delay={800}><p style={{fontSize:18,color:K.cream,opacity:.55,maxWidth:340,textAlign:"center",lineHeight:1.9,marginBottom:48}}>AI-crafted horoscope slides based on your exact natal chart and current planetary transits.</p></FadeIn>
-    <FadeIn delay={1000}><button onClick={()=>{track("begin");onStart();}} style={{background:"none",border:"1px solid "+K.gold,color:K.gold,padding:"16px 48px",fontSize:14,letterSpacing:3,textTransform:"uppercase",cursor:"pointer",borderRadius:3,fontFamily:f2,fontWeight:500}}>Begin Your Reading</button></FadeIn>
-    <FadeIn delay={1200}><p style={{marginTop:56,fontSize:11,color:K.dim,letterSpacing:2,fontFamily:f2}}>✦ @alwaysbbuilding5 ✦</p></FadeIn>
-  </div>;};
+const Landing=({onStart,onAdmin})=>{
+  const tapRef=useRef(0),tmRef=useRef(null);
+  const[fi,setFi]=useState(0);const touchRef=useRef(0);
+  useEffect(()=>track("view",{p:"landing"}),[]);
+
+  const features=[
+    {icon:"✦",iconBg:"rgba(201,168,76,.08)",iconColor:K.gold,title:"Precision Natal Chart",desc:"Sun, Moon, Rising, and all 10 planets — calculated to the exact degree from your birth time and location. This isn't your sign. This is your entire sky."},
+    {icon:"✦",iconBg:"rgba(155,142,196,.08)",iconColor:K.violet,title:"Your Week, Written for You",desc:"Every word is crafted for YOUR chart, YOUR transits, THIS week. Not a generic column — a private reading delivered as beautiful, shareable slides."},
+    {icon:"✦",iconBg:"rgba(122,139,111,.08)",iconColor:K.sage,title:"Your Personal AI Astrologer",desc:"Ask anything. Timing, relationships, career, why you're feeling what you're feeling. Luminary knows your complete chart and the current sky."},
+    {icon:"✦",iconBg:"rgba(196,114,127,.08)",iconColor:K.rose,title:"Deep Birth Chart Analysis",desc:"Your strengths, challenges, love style, career gifts, and a soul mantra — written like you're sitting across from a gifted astrologer in a private session."},
+  ];
+
+  const prevF=()=>{if(fi>0)setFi(fi-1);};
+  const nextF=()=>{if(fi<features.length-1)setFi(fi+1);};
+  const f=features[fi];
+
+  return<div style={{minHeight:"100vh",minHeight:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",padding:"0 20px",background:"radial-gradient(ellipse at 50% 0%,#1B2B3A 0%,#0B0F14 55%)",fontFamily:f1,position:"relative",overflow:"hidden"}}>
+    {/* Twinkling stars background */}
+    <style>{`@keyframes twk{0%,100%{opacity:.15}50%{opacity:.55}}@keyframes pls{0%,100%{opacity:.4}50%{opacity:1}}`}</style>
+    <div style={{position:"fixed",top:0,left:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:0}}>
+      {Array.from({length:30}).map((_,i)=><div key={i} style={{position:"absolute",width:Math.random()*2+1,height:Math.random()*2+1,background:K.gold,borderRadius:"50%",left:`${Math.random()*100}%`,top:`${Math.random()*100}%`,animation:`twk ${Math.random()*3+2}s ease-in-out ${Math.random()*5}s infinite`}}/>)}
+    </div>
+
+    <div style={{position:"relative",zIndex:1,width:"100%",maxWidth:440,display:"flex",flexDirection:"column",alignItems:"center",flex:1,justifyContent:"center"}}>
+      {/* Spacer for safe area */}
+      <div style={{height:"env(safe-area-inset-top,12px)"}}/>
+
+      {/* Hero */}
+      <FadeIn><div onClick={()=>{tapRef.current++;if(tmRef.current)clearTimeout(tmRef.current);if(tapRef.current>=5){tapRef.current=0;onAdmin();return;}tmRef.current=setTimeout(()=>{tapRef.current=0;},2000);}} style={{fontSize:11,letterSpacing:5,color:K.gold,marginBottom:12,cursor:"default",userSelect:"none",padding:8,fontFamily:f2}}>✦ ✦ ✦</div></FadeIn>
+
+      <FadeIn delay={150}><p style={{fontSize:11,letterSpacing:4,color:K.dim,marginBottom:12,textTransform:"uppercase",fontFamily:f2}}>PERSONALIZED ASTROLOGY</p></FadeIn>
+
+      <FadeIn delay={300}><h1 style={{fontSize:"clamp(46px,13vw,68px)",color:K.cream,fontWeight:300,letterSpacing:10,margin:0,textTransform:"uppercase",lineHeight:1}}>LUMINARY</h1></FadeIn>
+
+      <FadeIn delay={450}><div style={{width:50,height:1,background:`linear-gradient(90deg,transparent,${K.gold},transparent)`,margin:"20px 0"}}/></FadeIn>
+
+      <FadeIn delay={600}><p style={{fontSize:17,color:K.gold,fontWeight:300,fontStyle:"italic",textAlign:"center",lineHeight:1.6,maxWidth:320,margin:"0 auto 8px"}}>Your natal chart, decoded by AI.</p></FadeIn>
+      <FadeIn delay={700}><p style={{fontSize:15,color:K.cream,opacity:.5,textAlign:"center",lineHeight:1.6,maxWidth:340,margin:"0 auto 24px"}}>Not your sign — your <em>entire</em> sky.</p></FadeIn>
+
+      {/* Feature Carousel */}
+      <FadeIn delay={850}><div style={{width:"100%",maxWidth:420}}>
+        <div style={{position:"relative"}}
+          onTouchStart={e=>{if(e.touches[0])touchRef.current=e.touches[0].clientX;}}
+          onTouchEnd={e=>{if(e.changedTouches[0]){const d=e.changedTouches[0].clientX-touchRef.current;if(d>50)prevF();if(d<-50)nextF();}}}>
+          <div style={{padding:"22px 22px 26px",borderRadius:14,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.05)",minHeight:180,display:"flex",flexDirection:"column",transition:"opacity .3s"}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+              <div style={{width:38,height:38,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:10,background:f.iconBg,fontSize:16,color:f.iconColor,flexShrink:0}}>✦</div>
+              <h3 style={{fontSize:18,color:K.cream,fontWeight:500,margin:0,lineHeight:1.3,fontFamily:f2}}>{f.title}</h3>
+            </div>
+            <p style={{fontSize:15,color:K.dim,lineHeight:1.7,margin:0,fontFamily:f2}}>{f.desc}</p>
+          </div>
+        </div>
+        {/* Dots */}
+        <div style={{display:"flex",justifyContent:"center",gap:8,marginTop:14}}>
+          {features.map((_,i)=><div key={i} onClick={()=>setFi(i)} style={{width:i===fi?22:8,height:8,borderRadius:4,background:i===fi?K.gold:i<fi?K.sage:"rgba(255,255,255,.08)",transition:"all .3s",cursor:"pointer"}}/>)}
+        </div>
+      </div></FadeIn>
+
+      {/* CTA */}
+      <FadeIn delay={1000}><div style={{width:"100%",maxWidth:420,marginTop:28}}>
+        <button onClick={()=>{track("begin");onStart();}} style={{width:"100%",padding:"17px",border:"none",borderRadius:10,background:`linear-gradient(135deg,${K.gold},#B8942F)`,color:"#0B0F14",fontSize:14,fontWeight:600,letterSpacing:3,textTransform:"uppercase",cursor:"pointer",fontFamily:f2,boxShadow:"0 4px 24px rgba(201,168,76,.15)"}}>Get Your Reading</button>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginTop:14}}>
+          <div style={{width:6,height:6,borderRadius:"50%",background:K.sage,animation:"pls 2.5s ease-in-out infinite"}}/>
+          <span style={{fontSize:13,color:K.dim,fontFamily:f2}}>Free · 2 minutes · No app download</span>
+        </div>
+      </div></FadeIn>
+    </div>
+
+    {/* Footer */}
+    <FadeIn delay={1100}><div style={{position:"relative",zIndex:1,textAlign:"center",paddingBottom:"max(20px,env(safe-area-inset-bottom))"}}>
+      <p style={{fontSize:12,color:K.dim,letterSpacing:2,fontFamily:f2}}>✦ @alwaysbbuilding5 ✦</p>
+    </div></FadeIn>
+  </div>;
+};
 
 const InputScreen=({onSubmit})=>{
   const[nm,setNm]=useState(""),[ig,setIg]=useState(""),[dt,setDt]=useState(""),[tm,setTm]=useState(""),[noTm,setNoTm]=useState(false);

@@ -131,6 +131,21 @@ export default function SysPage() {
     } catch (e) {}
   }
 
+  async function deleteUser(key) {
+    if (!key) return;
+    if (!confirm("Delete this record permanently?")) return;
+    try {
+      const r = await fetch(`/api/user?action=delete&mk=${MK}&key=${encodeURIComponent(key)}`);
+      const d = await r.json();
+      if (d.success) {
+        setItems(items.filter(u => u.key !== key));
+        if (sel?.key === key) { setSel(null); setTab("list"); }
+      } else {
+        setErr(d.error || "Delete failed");
+      }
+    } catch (e) { setErr(e.message); }
+  }
+
   async function toggleVerified() {
     if (!sel?.ig) return;
     const v = !sel.verified;
@@ -298,6 +313,7 @@ export default function SysPage() {
             </select>
             <button onClick={runComp} disabled={!!busy} style={bt(T.c)}>{busy === "comp" ? "..." : "Compatibility"}</button>
             <button onClick={runEval} disabled={!!busy} style={bt(T.d)}>{busy === "eval" ? "..." : "Evaluate"}</button>
+            <button onClick={() => deleteUser(sel?.key)} style={{ ...bt(T.c), marginLeft: "auto", borderColor: `${T.c}66` }}>Delete Record</button>
           </div>
         </div>
       )}
