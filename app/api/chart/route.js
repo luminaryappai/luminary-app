@@ -59,6 +59,31 @@ function calcTransits() {
   return tr;
 }
 
+function getTransitTiming(planet, currentOrb, maxOrb) {
+  // Average daily motion in degrees for each planet
+  const speeds = { Sun:1.0, Moon:13.2, Mercury:1.2, Venus:1.2, Mars:0.52, Jupiter:0.083, Saturn:0.034, Uranus:0.012, Neptune:0.006, Pluto:0.004 };
+  const speed = speeds[planet] || 0.5;
+  const daysToExact = currentOrb / speed;
+  const totalDuration = (maxOrb * 2) / speed;
+  
+  const now = new Date();
+  const peak = new Date(now.getTime() + daysToExact * 86400000);
+  const end = new Date(now.getTime() + (totalDuration / 2) * 86400000);
+  const start = new Date(now.getTime() - (totalDuration / 2) * 86400000);
+  
+  const fmt = d => { const ms = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; return ms[d.getMonth()] + " " + d.getDate(); };
+  
+  // Outer planets = long transits, inner = short
+  let duration;
+  if (speed < 0.02) duration = "several months";
+  else if (speed < 0.1) duration = "several weeks";
+  else if (speed < 0.6) duration = "1-2 weeks";
+  else if (speed < 2) duration = "a few days";
+  else duration = "today";
+  
+  return { peak: fmt(peak), start: fmt(start), end: fmt(end), duration, daysToExact: Math.round(daysToExact) };
+}
+
 function findAspects(natal, transits) {
   const found = [];
   let totalScore = 0;
@@ -80,7 +105,8 @@ function findAspects(natal, transits) {
             tightness: Math.round(tight * 100) / 100,
             meaning: ASPECT_MEANINGS[asp.name],
             transitArea: PLANET_AREAS[ti] || "cosmic energy",
-            natalArea: PLANET_AREAS[ni] || "your chart"
+            natalArea: PLANET_AREAS[ni] || "your chart",
+            timing: getTransitTiming(ti, orb, asp.orb)
           });
         }
       }
@@ -95,16 +121,30 @@ function findAspects(natal, transits) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { year, month, day, hour, lat, lng, tz } = body;
+    const { year, month, day, hour, lat, lng, tz, unknownTime } = body;
     if (!year || !month || !day || lat === undefined || lng === undefined) {
       return Response.json({ error: "Missing birth data" }, { status: 400 });
     }
     const utcHour = hour !== undefined ? hour : 12 - (tz || 0);
     const natal = calcChart(year, month, day, utcHour, lat, lng);
+    
+    // If birth time is unknown, remove Ascendant and flag Moon as approximate
+    if (unknownTime) {
+      delete natal.Ascendant;
+      natal.Moon.approximate = true;
+    }
+    
     const transits = calcTransits();
-    const { aspects, intensity } = findAspects(natal, transits);
+    
+    // When time is unknown, don't include Ascendant in aspect calculations
+    const natalForAspects = unknownTime ? Object.fromEntries(Object.entries(natal).filter(([k]) => k !== "Ascendant")) : natal;
+    const { aspects, intensity } = findAspects(natalForAspects, transits);
 
-    const chartText = Object.entries(natal).map(([k, v]) => `${k}: ${v.sign} ${v.deg}deg${v.min}min`).join(", ");
+    const chartText = Object.entries(natal).map(([k, v]) => {
+      let label = `${k}: ${v.sign} ${v.deg}deg${v.min}min`;
+      if (k === "Moon" && unknownTime) label += " (approximate — birth time unknown)";
+      return label;
+    }).join(", ");
     const transitText = Object.entries(transits).map(([k, v]) => `${k}: ${v.sign} ${v.deg}deg${v.min}min`).join(", ");
     const topAspects = aspects.slice(0, 12).map(a =>
       `Transit ${a.transit} ${a.aspect} Natal ${a.natal} (orb ${a.orb}deg, intensity ${Math.round(a.tightness * 100)}%) — ${a.transit} ${a.meaning} your ${a.natal}, activating ${a.natalArea}`
@@ -112,12 +152,12 @@ export async function POST(request) {
 
     console.log(JSON.stringify({
       event: "CHART_CALC", sun: natal.Sun?.sign, moon: natal.Moon?.sign,
-      rising: natal.Ascendant?.sign, intensity, ts: new Date().toISOString()
+      rising: unknownTime ? "unknown" : natal.Ascendant?.sign, intensity, unknownTime: !!unknownTime, ts: new Date().toISOString()
     }));
 
     return Response.json({
       chart: natal, transits, aspects: aspects.slice(0, 20), intensity,
-      chartText, transitText, topAspects,
+      chartText, transitText, topAspects, unknownTime: !!unknownTime,
       sunElement: ELEMENTS[SIGNS.indexOf(natal.Sun.sign)],
       sunModality: MODS[SIGNS.indexOf(natal.Sun.sign)]
     });

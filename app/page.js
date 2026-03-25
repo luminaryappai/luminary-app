@@ -87,12 +87,13 @@ const curSeason=()=>{const m=new Date().getMonth();return m>=2&&m<=4?"Spring":m>
 
 /* Build horoscope prompt using server-calculated chart data */
 const buildPrompt=(name,chartData,ig)=>{
-  const ch=chartData;
+  const ch=chartData;const noTime=ch.unknownTime;
+  const risingText=noTime?"Rising: UNKNOWN (birth time not provided — do NOT reference Rising sign or houses)":("Rising: "+ch.chart.Ascendant.sign+" "+ch.chart.Ascendant.deg+"deg");
   return `Generate personalized horoscope slides for ${name}.
 
 NATAL CHART: ${ch.chartText}
-Sun: ${ch.chart.Sun.sign} ${ch.chart.Sun.deg}deg (${ch.sunElement}, ${ch.sunModality}). Moon: ${ch.chart.Moon.sign} ${ch.chart.Moon.deg}deg. Rising: ${ch.chart.Ascendant.sign} ${ch.chart.Ascendant.deg}deg.
-
+Sun: ${ch.chart.Sun.sign} ${ch.chart.Sun.deg}deg (${ch.sunElement}, ${ch.sunModality}). Moon: ${ch.chart.Moon.sign} ${ch.chart.Moon.deg}deg${noTime?" (approximate — birth time unknown)":""}. ${risingText}.
+${noTime?"\nIMPORTANT: Birth time is UNKNOWN. Do NOT reference Rising sign, Ascendant, or house placements. Moon sign may be off by up to one sign. Focus on Sun sign, planetary positions, and confirmed aspects.\n":""}
 CURRENT TRANSITS: ${ch.transitText}
 
 TOP ACTIVE ASPECTS (sorted by intensity — the FIRST ones are the MOST powerful and should DRIVE the reading):
@@ -178,7 +179,8 @@ const ErrScreen=({msg,onRetry})=><div style={{minHeight:"100vh",display:"flex",f
 </div>;
 
 const ChartView=({chartData,name,onContinue})=>{
-  const ch=chartData.chart;const big=[{l:"Sun",v:ch.Sun},{l:"Moon",v:ch.Moon},{l:"Rising",v:ch.Ascendant}];
+  const ch=chartData.chart;const noTime=chartData.unknownTime;
+  const big=noTime?[{l:"Sun",v:ch.Sun},{l:"Moon ≈",v:ch.Moon}]:[{l:"Sun",v:ch.Sun},{l:"Moon",v:ch.Moon},{l:"Rising",v:ch.Ascendant}];
   const pls=["Mercury","Venus","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"];
   return<div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",padding:"32px 20px",background:"radial-gradient(ellipse at 50% 15%,#1B2B3A 0%,#0B0F14 60%)",fontFamily:f1}}>
     <FadeIn><p style={{fontSize:10,letterSpacing:6,color:K.gold,marginBottom:20,fontFamily:f2}}>✦ LUMINARY ✦</p></FadeIn>
@@ -190,14 +192,17 @@ const ChartView=({chartData,name,onContinue})=>{
       <p style={{fontSize:11,color:K.sage,letterSpacing:2,textTransform:"uppercase",marginBottom:14,fontFamily:f2}}>Planetary Positions</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px 16px"}}>{pls.map(p=>{const v=ch[p];return<div key={p} style={{display:"flex",alignItems:"center",gap:8}}><ZG sign={v.sign} size={18} color={K.sage}/><span style={{fontSize:13,color:K.dim,fontFamily:f2,minWidth:65}}>{p}</span><span style={{fontSize:14,color:K.cream}}>{v.sign} {v.deg}°</span></div>;})}</div>
     </div></FadeIn>
+    {noTime&&<FadeIn delay={750}><div style={{width:"100%",maxWidth:400,background:"rgba(201,168,76,.06)",border:"1px solid rgba(201,168,76,.15)",borderRadius:10,padding:16,marginBottom:20}}>
+      <p style={{fontSize:13,color:K.gold,margin:0,lineHeight:1.7}}>Your birth time shapes your Rising sign and the houses of your chart — the areas of life each planet activates. Without it, your Moon sign is approximate and your Rising is unknown. Even a 45-minute difference can shift your entire chart. If you can find your birth certificate or ask a parent, it unlocks a much deeper reading.</p>
+    </div></FadeIn>}
     <FadeIn delay={800}><button onClick={onContinue} style={{background:K.gold,color:"#0B0F14",border:"none",padding:"15px 44px",fontSize:14,fontWeight:600,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",borderRadius:6,fontFamily:f2}}>See Your Forecast →</button></FadeIn>
   </div>;};
 
 /* ─── SLIDES with 3 tabs ─── */
-const SlidesView=({name,chartData,weekly,monthly,onChat,onShare})=>{
+const SlidesView=({name,chartData,weekly,monthly,onChat,onShare,onBirthChart})=>{
   const[tab,setTab]=useState("weekly"),[idx,setIdx]=useState(0);const touchRef=useRef(0);
   const aspects=chartData.aspects||[];
-  const transitCards=aspects.slice(0,6).map(a=>({title:`${a.transit} → ${a.natal}`,subtitle:`${a.aspect.toUpperCase()} • Intensity: ${Math.round(a.tightness*100)}%`,body:`Transit ${a.transit} ${a.meaning} your natal ${a.natal}, activating ${a.natalArea}. ${a.tightness>.8?"This is extremely powerful right now — you are likely feeling this strongly in your daily life.":a.tightness>.5?"This is a significant influence shaping your experience this period.":"This is a subtle background current influencing you."}`}));
+  const transitCards=aspects.slice(0,6).map(a=>({title:`${a.transit} → ${a.natal}`,subtitle:`${a.aspect.toUpperCase()} • Intensity: ${Math.round(a.tightness*100)}%${a.timing?" • "+a.timing.duration:""}`,body:`Transit ${a.transit} ${a.meaning} your natal ${a.natal}, activating ${a.natalArea}. ${a.timing?"This transit peaks around "+a.timing.peak+" and is active from "+a.timing.start+" to "+a.timing.end+". ":""}${a.tightness>.8?"You are likely feeling this powerfully in your daily life right now.":a.tightness>.5?"This is a significant influence shaping your current experience.":"This is a subtle current in the background."}`}));
   const tabs={weekly,monthly,chart:transitCards};
   const slides=tabs[tab]||weekly;
   const prev=()=>{if(idx>0)setIdx(idx-1);};const next=()=>{if(idx<slides.length-1)setIdx(idx+1);};
@@ -227,10 +232,54 @@ const SlidesView=({name,chartData,weekly,monthly,onChat,onShare})=>{
     </div>
     <div style={{display:"flex",gap:8,marginTop:18}}>{slides.map((_,i)=><div key={i} onClick={()=>setIdx(i)} style={{width:i===idx?24:10,height:10,borderRadius:5,background:i===idx?K.gold:"#1E2A36",transition:"all .3s",cursor:"pointer"}}/>)}</div>
     <p style={{fontSize:12,color:K.dim,marginTop:8,fontFamily:f2}}>{idx+1} of {slides.length}</p>
-    <div style={{display:"flex",gap:12,marginTop:22}}>
-      <button onClick={()=>{track("chat");onChat();}} style={{background:"rgba(201,168,76,.1)",border:"1px solid "+K.gold,color:K.gold,padding:"12px 26px",fontSize:12,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",borderRadius:6,fontFamily:f2}}>Ask Luminary AI</button>
-      <button onClick={onShare} style={{background:"rgba(122,139,111,.1)",border:"1px solid "+K.sage,color:K.sage,padding:"12px 26px",fontSize:12,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",borderRadius:6,fontFamily:f2}}>Share</button>
+    <div style={{display:"flex",gap:10,marginTop:22,flexWrap:"wrap",justifyContent:"center"}}>
+      <button onClick={()=>{track("chart_deep");onBirthChart();}} style={{background:"rgba(155,142,196,.1)",border:"1px solid "+K.violet,color:K.violet,padding:"12px 22px",fontSize:12,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",borderRadius:6,fontFamily:f2}}>Your Chart</button>
+      <button onClick={()=>{track("chat");onChat();}} style={{background:"rgba(201,168,76,.1)",border:"1px solid "+K.gold,color:K.gold,padding:"12px 22px",fontSize:12,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",borderRadius:6,fontFamily:f2}}>Ask Luminary AI</button>
+      <button onClick={onShare} style={{background:"rgba(122,139,111,.1)",border:"1px solid "+K.sage,color:K.sage,padding:"12px 22px",fontSize:12,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",borderRadius:6,fontFamily:f2}}>Share</button>
     </div>
+  </div>;};
+
+/* ─── BIRTH CHART DEEP ANALYSIS ─── */
+const BirthChartDeep=({chartData,name,onBack})=>{
+  const[data,setData]=useState(null);const[ld,setLd]=useState(true);const[err,setErr]=useState(null);
+  const noTime=chartData.unknownTime;
+  useEffect(()=>{
+    const extra=noTime?"\n\nIMPORTANT: Birth time is UNKNOWN. Do NOT reference the Rising sign or Ascendant. Flag that the Moon sign is approximate. Do not make house-based or Midheaven-based claims. Focus on Sun, planetary placements, and aspects you CAN confirm.":"";
+    fetch("/api/birthchart",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chartText:chartData.chartText+extra,name})})
+    .then(r=>r.json()).then(d=>{if(d.error){setErr(d.error);setLd(false);}else{setData(d);setLd(false);}}).catch(e=>{setErr(e.message);setLd(false);});
+  },[]);
+  const ch=chartData.chart;const sunSign=ch.Sun.sign;
+  const sec=(title,content,color=K.gold)=><div style={{width:"100%",maxWidth:420,marginBottom:20}}>
+    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><Star4 size={10} color={color}/><p style={{fontSize:12,color,letterSpacing:2,textTransform:"uppercase",margin:0,fontFamily:f2}}>{title}</p></div>
+    {typeof content==="string"?<p style={{fontSize:15,color:K.cream,lineHeight:1.8,opacity:.9}}>{content}</p>:content}
+  </div>;
+  return<div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",padding:"32px 20px",background:"radial-gradient(ellipse at 50% 15%,#1B2B3A 0%,#0B0F14 60%)",fontFamily:f1}}>
+    <div style={{width:"100%",maxWidth:420,display:"flex",alignItems:"center",marginBottom:24}}>
+      <button onClick={onBack} style={{background:"none",border:"none",color:K.gold,fontSize:15,cursor:"pointer",fontFamily:f2}}>← Back</button>
+      <span style={{flex:1,textAlign:"center",fontSize:10,letterSpacing:4,color:K.gold,fontFamily:f2}}>✦ YOUR BIRTH CHART ✦</span>
+      <div style={{width:50}}/>
+    </div>
+    <FadeIn><h2 style={{fontSize:26,color:K.cream,fontWeight:400,marginBottom:4}}>{name}'s Chart</h2></FadeIn>
+    <FadeIn delay={100}><p style={{fontSize:14,color:K.dim,marginBottom:8,fontFamily:f2}}>{ch.Sun.sign} Sun • {ch.Moon.sign} Moon{ch.Moon.approximate?" (approx)":""}{ noTime?"":" • "+ch.Ascendant.sign+" Rising"}</p></FadeIn>
+    <FadeIn delay={200}><div style={{display:"flex",gap:8,marginBottom:noTime?12:28}}><ZG sign={ch.Sun.sign} size={28}/><ZG sign={ch.Moon.sign} size={28} color={K.sage}/>{!noTime&&ch.Ascendant&&<ZG sign={ch.Ascendant.sign} size={28} color={K.violet}/>}</div></FadeIn>
+    {noTime&&<FadeIn delay={250}><p style={{fontSize:13,color:K.gold,maxWidth:380,textAlign:"center",lineHeight:1.7,marginBottom:24,opacity:.8}}>Your birth time is unknown, so your Rising sign and house placements aren't included. Your Moon sign may also be approximate. Knowing your exact birth time — even within 15 minutes — transforms the depth of your reading. Check your birth certificate or ask a parent.</p></FadeIn>}
+    {ld&&<div style={{marginTop:40,textAlign:"center"}}><div style={{width:48,height:48,border:"2px solid transparent",borderTopColor:K.gold,borderRadius:"50%",animation:"sp 1.2s linear infinite",margin:"0 auto 16px"}}/><p style={{color:K.dim,fontFamily:f2,fontSize:14}}>Analyzing your chart...</p></div>}
+    {err&&<p style={{color:K.rose,fontSize:14,textAlign:"center",marginTop:20}}>{err}</p>}
+    {data&&<FadeIn delay={300}><div style={{width:"100%",maxWidth:420}}>
+      {sec("The Big Three",data.bigThree,K.gold)}
+      {sec("Elemental Balance",data.element,K.sage)}
+      {sec("Your Natural Gifts",<div>{(data.strengths||[]).map((s,i)=><p key={i} style={{fontSize:15,color:K.cream,lineHeight:1.8,opacity:.9,marginBottom:12,paddingLeft:14,borderLeft:"2px solid "+[K.gold,K.sage,K.violet][i%3]}}>{s}</p>)}</div>,K.violet)}
+      {sec("Growth Edges",<div>{(data.challenges||[]).map((c,i)=><p key={i} style={{fontSize:15,color:K.cream,lineHeight:1.8,opacity:.85,marginBottom:12,paddingLeft:14,borderLeft:"2px solid "+K.rose}}>{c}</p>)}</div>,K.rose)}
+      {sec("How You Love",data.loveStyle,K.rose)}
+      {sec("Career & Purpose",data.careerGifts,K.sage)}
+      {sec("Your Current Chapter",data.currentChapter,K.gold)}
+      <div style={{textAlign:"center",margin:"32px 0 24px",padding:"28px 24px",background:"rgba(201,168,76,.06)",border:"1px solid rgba(201,168,76,.2)",borderRadius:14}}>
+        <Star4 size={16} color={K.gold} opacity={.6}/>
+        <p style={{fontSize:12,color:K.gold,letterSpacing:2,textTransform:"uppercase",margin:"12px 0 8px",fontFamily:f2}}>Your Soul Mantra</p>
+        <p style={{fontSize:20,color:K.cream,fontStyle:"italic",lineHeight:1.7,opacity:.9}}>{data.soulMantra}</p>
+        <p style={{fontSize:12,color:K.dim,marginTop:12,fontFamily:f2}}>{name} • {sunSign}</p>
+      </div>
+    </div></FadeIn>}
   </div>;};
 
 /* ─── CHAT ─── */
@@ -284,20 +333,20 @@ export default function Luminary(){
   const onQuestions=a=>{
     setAns(a);setScr("loading");
     let savedCd=null;
-    fetch("/api/chart",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({year:bd.year,month:bd.month,day:bd.day,hour:bd.hour,lat:bd.lat,lng:bd.lng,tz:bd.tz})})
+    fetch("/api/chart",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({year:bd.year,month:bd.month,day:bd.day,hour:bd.hour,lat:bd.lat,lng:bd.lng,tz:bd.tz,unknownTime:bd.unknownTime})})
     .then(r=>r.json()).then(cd=>{
       if(cd.error){setErr("Chart calculation: "+cd.error);setScr("error");return;}
-      cd.focus=a.focus;cd.energy=a.energy;cd.seeking=a.seeking;
+      cd.focus=a.focus;cd.energy=a.energy;cd.seeking=a.seeking;cd.unknownTime=bd.unknownTime;
       savedCd=cd;
       setChartData(cd);
       const prompt=buildPrompt(bd.name,cd);
-      const userData={name:bd.name,ig:bd.ig,city:bd.city,sun:cd.chart.Sun.sign,moon:cd.chart.Moon.sign,rising:cd.chart.Ascendant.sign,focus:a.focus,energy:a.energy,seeking:a.seeking,intensity:cd.intensity};
+      const userData={name:bd.name,ig:bd.ig,city:bd.city,sun:cd.chart.Sun.sign,moon:cd.chart.Moon.sign,rising:cd.unknownTime?"Unknown":cd.chart.Ascendant?.sign||"Unknown",focus:a.focus,energy:a.energy,seeking:a.seeking,intensity:cd.intensity,unknownTime:bd.unknownTime};
       return fetch("/api/horoscope",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,userData})});
     }).then(r=>{if(r)return r.json();}).then(data=>{
       if(!data)return;
       if(data.error){setErr(data.error);setScr("error");return;}
       setWeekly(data.weekly);setMonthly(data.monthly);
-      if(savedCd)track("done",{name:bd.name,ig:bd.ig,city:bd.city,sun:savedCd.chart.Sun.sign,moon:savedCd.chart.Moon.sign,rising:savedCd.chart.Ascendant.sign,focus:a.focus,intensity:savedCd.intensity});
+      if(savedCd)track("done",{name:bd.name,ig:bd.ig,city:bd.city,sun:savedCd.chart.Sun.sign,moon:savedCd.chart.Moon.sign,rising:savedCd.chart.Ascendant?.sign||"Unknown",focus:a.focus,intensity:savedCd.intensity});
       setScr("chart_view");
     }).catch(e=>{setErr(e.message);setScr("error");});
   };
@@ -311,7 +360,8 @@ export default function Luminary(){
   if(scr==="loading")return<LoadingScreen name={bd?.name||""}/>;
   if(scr==="error")return<ErrScreen msg={err} onRetry={()=>{setErr(null);setScr("questions");}}/>;
   if(scr==="chart_view"&&chartData)return<ChartView chartData={chartData} name={bd.name} onContinue={()=>setScr("slides")}/>;
-  if(scr==="slides"&&chartData)return<SlidesView name={bd.name} chartData={chartData} weekly={weekly} monthly={monthly} onChat={()=>setScr("chat")} onShare={share}/>;
+  if(scr==="slides"&&chartData)return<SlidesView name={bd.name} chartData={chartData} weekly={weekly} monthly={monthly} onChat={()=>setScr("chat")} onShare={share} onBirthChart={()=>setScr("birthchart")}/>;
+  if(scr==="birthchart"&&chartData)return<BirthChartDeep chartData={chartData} name={bd.name} onBack={()=>setScr("slides")}/>;
   if(scr==="chat"&&chartData)return<ChatView chartData={chartData} name={bd.name} onBack={()=>setScr("slides")}/>;
   return<Landing onStart={()=>setScr("input")} onAdmin={()=>setScr("admin")}/>;
 }
