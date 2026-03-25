@@ -283,13 +283,13 @@ export default function Luminary(){
 
   const onQuestions=a=>{
     setAns(a);setScr("loading");
-    // Step 1: Calculate chart on server (accurate astronomy-engine)
+    let savedCd=null;
     fetch("/api/chart",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({year:bd.year,month:bd.month,day:bd.day,hour:bd.hour,lat:bd.lat,lng:bd.lng,tz:bd.tz})})
     .then(r=>r.json()).then(cd=>{
       if(cd.error){setErr("Chart calculation: "+cd.error);setScr("error");return;}
       cd.focus=a.focus;cd.energy=a.energy;cd.seeking=a.seeking;
+      savedCd=cd;
       setChartData(cd);
-      // Step 2: Generate horoscope using accurate chart data
       const prompt=buildPrompt(bd.name,cd);
       const userData={name:bd.name,ig:bd.ig,city:bd.city,sun:cd.chart.Sun.sign,moon:cd.chart.Moon.sign,rising:cd.chart.Ascendant.sign,focus:a.focus,energy:a.energy,seeking:a.seeking,intensity:cd.intensity};
       return fetch("/api/horoscope",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,userData})});
@@ -297,7 +297,7 @@ export default function Luminary(){
       if(!data)return;
       if(data.error){setErr(data.error);setScr("error");return;}
       setWeekly(data.weekly);setMonthly(data.monthly);
-      track("done",{name:bd.name,ig:bd.ig,city:bd.city,sun:chartData?.chart?.Sun?.sign,moon:chartData?.chart?.Moon?.sign,rising:chartData?.chart?.Ascendant?.sign,focus:a.focus,intensity:chartData?.intensity});
+      if(savedCd)track("done",{name:bd.name,ig:bd.ig,city:bd.city,sun:savedCd.chart.Sun.sign,moon:savedCd.chart.Moon.sign,rising:savedCd.chart.Ascendant.sign,focus:a.focus,intensity:savedCd.intensity});
       setScr("chart_view");
     }).catch(e=>{setErr(e.message);setScr("error");});
   };
