@@ -104,9 +104,61 @@ export async function POST(request) {
       return Response.json({ error: "Missing birth data" }, { status: 400 });
     }
 
-    // Birth date in UTC
-    const utcHour = (hour || 12) + (tz || 0); // hour is already adjusted by client, but just in case
-    const birthDate = new Astronomy.MakeTime(new Date(Date.UTC(year, month - 1, day, Math.floor(hour || 12), Math.round(((hour || 12) % 1) * 60))));
+    // DST correction: the client sends hour = localHour - staticTZ
+    // But staticTZ doesn't account for DST. We need to add 1 hour back
+    // for dates that fall in DST for the relevant timezone.
+    
+    // Determine if DST applies (US rules: 2nd Sunday March - 1st Sunday November)
+    // Pre-2007 US rules: 1st Sunday April - last Sunday October
+    function isDST(y, m, d) {
+      // m is 1-indexed
+      if (m < 3 || m > 11) return false;
+      if (m > 3 && m < 11) return true;
+      
+      const changeYear = y >= 2007 ? 2007 : 0;
+      
+      if (m === 3) {
+        // Spring forward: 2nd Sunday in March (2007+) or 1st Sunday in April (pre-2007)
+        if (y < 2007) return false; // March is never DST pre-2007
+        const firstDay = new Date(y, 2, 1).getDay(); // 0=Sun
+        const secondSunday = firstDay === 0 ? 8 : (7 - firstDay) + 8;
+        return d >= secondSunday;
+      }
+      if (m === 11) {
+        // Fall back: 1st Sunday in November
+        const firstDay = new Date(y, 10, 1).getDay();
+        const firstSunday = firstDay === 0 ? 1 : (7 - firstDay) + 1;
+        return d < firstSunday;
+      }
+      if (m === 4 && y < 2007) {
+        // Pre-2007: 1st Sunday in April
+        const firstDay = new Date(y, 3, 1).getDay();
+        const firstSunday = firstDay === 0 ? 1 : (7 - firstDay) + 1;
+        return d >= firstSunday;
+      }
+      if (m === 10 && y < 2007) {
+        // Pre-2007: last Sunday in October
+        const lastDay = new Date(y, 9, 31).getDay();
+        const lastSunday = 31 - lastDay;
+        return d < lastSunday;
+      }
+      return m > 3 && m < 11; // Fallback: summer months
+    }
+    
+    // Only apply DST correction for US-like timezones (tz between -10 and -5)
+    // EXCLUDE Arizona (tz=-7, lat 31-37, lng -109 to -115) and Hawaii (tz=-10)
+    let dstCorrection = 0;
+    const isArizona = tz === -7 && lat >= 31 && lat <= 37 && lng >= -115 && lng <= -109;
+    const isHawaii = tz === -10;
+    if (tz && tz >= -10 && tz <= -5 && !isArizona && !isHawaii && isDST(year, month, day)) {
+      dstCorrection = 1; // Add 1 hour back (client subtracted too much)
+    }
+    
+    // The client sends: hour = localHour - staticTZ (already in UTC, but off by 1 in DST)
+    // So the real UTC hour = hour - dstCorrection (subtracting because client over-subtracted)
+    const correctedHour = (hour || 12) - dstCorrection;
+    
+    const birthDate = new Astronomy.MakeTime(new Date(Date.UTC(year, month - 1, day, Math.floor(correctedHour), Math.round((correctedHour % 1) * 60))));
 
     // Calculate natal positions
     const planets = {};
