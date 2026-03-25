@@ -104,58 +104,71 @@ export async function POST(request) {
       return Response.json({ error: "Missing birth data" }, { status: 400 });
     }
 
-    // DST correction: the client sends hour = localHour - staticTZ
-    // But staticTZ doesn't account for DST. We need to add 1 hour back
-    // for dates that fall in DST for the relevant timezone.
+    // ═══ GLOBAL DST CORRECTION ═══
+    // Client sends hour = localHour - staticTZ, but staticTZ doesn't account for DST.
+    // This function detects DST for every timezone on earth and corrects the offset.
     
-    // Determine if DST applies (US rules: 2nd Sunday March - 1st Sunday November)
-    // Pre-2007 US rules: 1st Sunday April - last Sunday October
-    function isDST(y, m, d) {
-      // m is 1-indexed
-      if (m < 3 || m > 11) return false;
-      if (m > 3 && m < 11) return true;
+    function getGlobalDSTOffset(y, m, d, stdOff, lt, ln) {
+      function dow(yr,mo,dy){return new Date(yr,mo-1,dy).getDay();}
+      function nthSun(yr,mo,n){const f=dow(yr,mo,1);const fs=f===0?1:(7-f+1);return fs+(n-1)*7;}
+      function lastSun(yr,mo){const dim=new Date(yr,mo,0).getDate();return dim-dow(yr,mo,dim);}
       
-      const changeYear = y >= 2007 ? 2007 : 0;
+      // No-DST zones (check first)
+      if(stdOff===-7&&lt>=31&&lt<=37&&ln>=-115&&ln<=-109)return 0; // Arizona
+      if(stdOff===-10)return 0; // Hawaii
+      if(stdOff===-3&&lt<=-22&&ln>=-74&&ln<=-53)return 0; // Argentina
+      if(stdOff>=4&&stdOff<=9&&lt>=-10&&lt<=50&&ln>=60&&ln<=150)return 0; // Asia
+      if(Math.abs(stdOff-5.5)<0.1)return 0; // India
+      if(lt>=-35&&lt<=37&&ln>=-18&&ln<=55&&stdOff>=-1&&stdOff<=4){if(!(lt>=29&&lt<=34&&ln>=34&&ln<=36))return 0;} // Africa (excl Israel)
+      if(ln>=28&&lt>=50&&stdOff>=3&&y>=2014)return 0; // Russia
+      if(stdOff===3&&lt>=36&&lt<=42&&ln>=26&&ln<=45&&y>=2016)return 0; // Turkey
+      if(lt>=14&&lt<=33&&ln>=-118&&ln<=-86&&y>=2022)return 0; // Mexico post-2022
       
-      if (m === 3) {
-        // Spring forward: 2nd Sunday in March (2007+) or 1st Sunday in April (pre-2007)
-        if (y < 2007) return false; // March is never DST pre-2007
-        const firstDay = new Date(y, 2, 1).getDay(); // 0=Sun
-        const secondSunday = firstDay === 0 ? 8 : (7 - firstDay) + 8;
-        return d >= secondSunday;
+      // Southern hemisphere (Oct-Mar DST)
+      if(stdOff===-3&&lt<=0&&ln>=-75&&ln<=-30){ // Brazil
+        if(y>=2019)return 0;
+        if(m>=4&&m<=9)return 0;if(m>=11||m<=1)return 1;
+        if(m===10)return d>=nthSun(y,10,3)?1:0;if(m===2)return d<nthSun(y,2,3)?1:0;return 0;
       }
-      if (m === 11) {
-        // Fall back: 1st Sunday in November
-        const firstDay = new Date(y, 10, 1).getDay();
-        const firstSunday = firstDay === 0 ? 1 : (7 - firstDay) + 1;
-        return d < firstSunday;
+      if(stdOff===-4&&lt<=-17&&ln>=-76&&ln<=-66){ // Chile
+        if(m>=5&&m<=7)return 0;if(m>=9||m<=3)return 1;return 0;
       }
-      if (m === 4 && y < 2007) {
-        // Pre-2007: 1st Sunday in April
-        const firstDay = new Date(y, 3, 1).getDay();
-        const firstSunday = firstDay === 0 ? 1 : (7 - firstDay) + 1;
-        return d >= firstSunday;
+      if(stdOff>=8&&stdOff<=11&&lt<=-10&&ln>=110&&ln<=160){ // Australia
+        if(lt>-28&&ln>138)return 0; // QLD
+        if(ln<130&&y>=2009)return 0; // WA
+        if(lt>-20&&ln>=129&&ln<=138)return 0; // NT
+        if(m>=5&&m<=9)return 0;if(m>=11||m<=2)return 1;
+        if(m===10)return d>=nthSun(y,10,1)?1:0;
+        if(m===3)return d<nthSun(y,3,1)?1:0;if(m===4)return d<nthSun(y,4,1)?1:0;return 0;
       }
-      if (m === 10 && y < 2007) {
-        // Pre-2007: last Sunday in October
-        const lastDay = new Date(y, 9, 31).getDay();
-        const lastSunday = 31 - lastDay;
-        return d < lastSunday;
+      if(stdOff===12&&lt<=-34&&ln>=165){ // New Zealand
+        if(m>=5&&m<=8)return 0;if(m>=10||m<=2)return 1;
+        if(m===9)return d>=lastSun(y,9)?1:0;if(m===3)return d<nthSun(y,3,1)?1:0;
+        if(m===4)return d<nthSun(y,4,1)?1:0;return 0;
       }
-      return m > 3 && m < 11; // Fallback: summer months
+      
+      // Northern hemisphere (Mar-Nov DST)
+      if(stdOff>=-9&&stdOff<=-3&&lt>14){ // US & Canada
+        if(y>=2007){if(m<3||m>11)return 0;if(m>3&&m<11)return 1;if(m===3)return d>=nthSun(y,3,2)?1:0;if(m===11)return d<nthSun(y,11,1)?1:0;}
+        else if(y>=1987){if(m<4||m>10)return 0;if(m>4&&m<10)return 1;if(m===4)return d>=nthSun(y,4,1)?1:0;if(m===10)return d<lastSun(y,10)?1:0;}
+        else{if(m<4||m>10)return 0;if(m>4&&m<10)return 1;if(m===4)return d>=lastSun(y,4)?1:0;if(m===10)return d<lastSun(y,10)?1:0;}
+      }
+      if(stdOff>=-7&&stdOff<=-5&&lt>=14&&lt<=33&&ln>=-118&&ln<=-86){ // Mexico pre-2022
+        if(m<4||m>10)return 0;if(m>4&&m<10)return 1;if(m===4)return d>=nthSun(y,4,1)?1:0;if(m===10)return d<lastSun(y,10)?1:0;
+      }
+      if(stdOff>=-1&&stdOff<=3&&lt>=35&&lt<=72&&ln>=-25&&ln<=45){ // Europe
+        if(m<3||m>10)return 0;if(m>3&&m<10)return 1;if(m===3)return d>=lastSun(y,3)?1:0;if(m===10)return d<lastSun(y,10)?1:0;
+      }
+      if(stdOff===2&&lt>=29&&lt<=34&&ln>=34&&ln<=36){ // Israel
+        if(m<3||m>10)return 0;if(m>3&&m<10)return 1;if(m===3)return d>=lastSun(y,3)-2?1:0;if(m===10)return d<lastSun(y,10)?1:0;
+      }
+      if(Math.abs(stdOff-3.5)<0.1){ // Iran
+        if(m>=4&&m<=8)return 1;if(m===3&&d>=22)return 1;if(m===9&&d<22)return 1;return 0;
+      }
+      return 0; // Default: no DST
     }
     
-    // Only apply DST correction for US-like timezones (tz between -10 and -5)
-    // EXCLUDE Arizona (tz=-7, lat 31-37, lng -109 to -115) and Hawaii (tz=-10)
-    let dstCorrection = 0;
-    const isArizona = tz === -7 && lat >= 31 && lat <= 37 && lng >= -115 && lng <= -109;
-    const isHawaii = tz === -10;
-    if (tz && tz >= -10 && tz <= -5 && !isArizona && !isHawaii && isDST(year, month, day)) {
-      dstCorrection = 1; // Add 1 hour back (client subtracted too much)
-    }
-    
-    // The client sends: hour = localHour - staticTZ (already in UTC, but off by 1 in DST)
-    // So the real UTC hour = hour - dstCorrection (subtracting because client over-subtracted)
+    const dstCorrection = getGlobalDSTOffset(year, month, day, tz, lat, lng);
     const correctedHour = (hour || 12) - dstCorrection;
     
     const birthDate = new Astronomy.MakeTime(new Date(Date.UTC(year, month - 1, day, Math.floor(correctedHour), Math.round((correctedHour % 1) * 60))));
