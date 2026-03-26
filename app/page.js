@@ -210,17 +210,15 @@ const InputScreen=({onSubmit,onRegister})=>{
   const[cq,setCq]=useState(""),[sel,setSel]=useState(null),[show,setShow]=useState(false);
   const[registering,setRegistering]=useState(false);
   const filt=()=>!cq||cq.length<2?[]:CITIES.filter(c=>c.n.toLowerCase().includes(cq.toLowerCase())).slice(0,10);
-  const sub=async()=>{if(!nm||!dt||!sel||!ig||!pw)return;
-    if(pw.length<4){alert("Password must be at least 4 characters");return;}
-    // Register first
-    if(onRegister){
+  const sub=async()=>{if(!nm||!dt||!sel)return;
+    // Try to register if they provided IG + password, but don't block if it fails
+    if(onRegister&&ig&&pw&&pw.length>=4){
       setRegistering(true);
-      const ok=await onRegister(nm,ig,pw);
+      await onRegister(nm,ig,pw).catch(()=>{});
       setRegistering(false);
-      if(!ok)return;
     }
     const p=dt.split("-"),hr=noTm?12:parseFloat((tm||"12:00").split(":")[0])+parseFloat((tm||"12:00").split(":")[1])/60;
-    onSubmit({name:nm,ig,year:+p[0],month:+p[1],day:+p[2],hour:hr-sel.tz,localHour:hr,lat:sel.la,lng:sel.ln,tz:sel.tz,city:sel.n,unknownTime:noTm});};
+    onSubmit({name:nm,ig:ig||nm,year:+p[0],month:+p[1],day:+p[2],hour:hr-sel.tz,localHour:hr,lat:sel.la,lng:sel.ln,tz:sel.tz,city:sel.n,unknownTime:noTm});};
   const ls={fontSize:12,color:K.sage,letterSpacing:2,textTransform:"uppercase",marginBottom:6,display:"block",fontFamily:f2};
   const is={width:"100%",padding:"13px 14px",background:"#0D1117",border:"1px solid #1E2A36",borderRadius:6,color:K.cream,fontSize:16,fontFamily:f1,outline:"none",boxSizing:"border-box"};
   return<div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",padding:"40px 20px",background:"radial-gradient(ellipse at 50% 10%,#1B2B3A 0%,#0B0F14 60%)",fontFamily:f1}}>
@@ -229,8 +227,8 @@ const InputScreen=({onSubmit,onRegister})=>{
     <FadeIn delay={200}><p style={{fontSize:14,color:K.dim,marginBottom:32,fontFamily:f2}}>The stars need to know where you began</p></FadeIn>
     <FadeIn delay={300}><div style={{width:"100%",maxWidth:380}}>
       <div style={{marginBottom:20}}><label style={ls}>First Name</label><input style={is} placeholder="Your first name" value={nm} onChange={e=>setNm(e.target.value)}/></div>
-      <div style={{marginBottom:20}}><label style={ls}>Instagram Handle</label><input style={is} placeholder="@yourusername" value={ig} onChange={e=>setIg(e.target.value)}/></div>
-      <div style={{marginBottom:20}}><label style={ls}>Create Password</label><input type="password" style={is} placeholder="4+ characters — to access your reading later" value={pw} onChange={e=>setPw(e.target.value)}/></div>
+      <div style={{marginBottom:20}}><label style={ls}>Instagram Handle <span style={{color:K.dim,fontSize:10,letterSpacing:0,textTransform:"none"}}>(optional)</span></label><input style={is} placeholder="@yourusername" value={ig} onChange={e=>setIg(e.target.value)}/></div>
+      <div style={{marginBottom:20}}><label style={ls}>Password <span style={{color:K.dim,fontSize:10,letterSpacing:0,textTransform:"none"}}>(optional — to save your reading)</span></label><input type="password" style={is} placeholder="4+ characters" value={pw} onChange={e=>setPw(e.target.value)}/></div>
       <div style={{marginBottom:20}}><label style={ls}>Birth Date</label><input type="date" style={is} value={dt} onChange={e=>setDt(e.target.value)}/></div>
       <div style={{marginBottom:8}}><label style={ls}>Birth Time</label><input type="time" style={{...is,opacity:noTm?.3:1}} disabled={noTm} value={tm} onChange={e=>setTm(e.target.value)}/></div>
       <div style={{marginBottom:20,display:"flex",alignItems:"center",gap:8}}><input type="checkbox" id="nt" onChange={e=>setNoTm(e.target.checked)} style={{accentColor:K.gold}}/><label htmlFor="nt" style={{fontSize:13,color:K.dim,fontFamily:f2,cursor:"pointer"}}>I don't know my birth time</label></div>
@@ -239,7 +237,7 @@ const InputScreen=({onSubmit,onRegister})=>{
         {sel&&<p style={{fontSize:12,color:K.sage,marginTop:4,fontFamily:f2}}>✓ {sel.n}</p>}
         {show&&filt().length>0&&!sel&&<div style={{position:"absolute",top:"100%",left:0,right:0,background:"#131920",border:"1px solid #1E2A36",borderRadius:6,maxHeight:260,overflowY:"auto",zIndex:100,marginTop:4}}>{filt().map((c,i)=><div key={i} onClick={()=>{setSel(c);setCq(c.n);setShow(false);}} style={{padding:"12px 14px",cursor:"pointer",borderBottom:"1px solid #1E2A36",color:K.cream,fontSize:15,fontFamily:f2}}>{c.n}</div>)}</div>}
       </div>
-      <button onClick={sub} disabled={registering} style={{width:"100%",padding:"15px",background:(sel&&nm&&ig&&pw)?K.gold:"#333",color:(sel&&nm&&ig&&pw)?"#0B0F14":"#666",border:"none",borderRadius:6,fontSize:14,fontWeight:600,letterSpacing:2,textTransform:"uppercase",cursor:(sel&&nm&&ig&&pw)?"pointer":"default",fontFamily:f2,opacity:registering?.5:1}}>{registering?"Creating account...":"Continue"}</button>
+      <button onClick={sub} disabled={registering} style={{width:"100%",padding:"15px",background:(sel&&nm&&dt)?K.gold:"#333",color:(sel&&nm&&dt)?"#0B0F14":"#666",border:"none",borderRadius:6,fontSize:14,fontWeight:600,letterSpacing:2,textTransform:"uppercase",cursor:(sel&&nm&&dt)?"pointer":"default",fontFamily:f2,opacity:registering?.5:1}}>{registering?"Creating account...":"Continue"}</button>
     </div></FadeIn>
   </div>;};
 
@@ -431,21 +429,23 @@ export default function Luminary(){
 
   // ── Data Bridge: save reading to backend ──
   const saveReading=(cd,w,m)=>{
-    if(!bd?.ig)return;
+    const identifier = bd?.ig || bd?.name || "";
+    if(!identifier)return;
     fetch("/api/user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-      action:"save",ig:bd.ig,name:bd.name,chart:cd.chart,transits:cd.transits||{},aspects:cd.aspects,intensity:cd.intensity,
+      action:"save",ig:identifier,name:bd.name,chart:cd.chart,transits:cd.transits||{},aspects:cd.aspects,intensity:cd.intensity,
       answers:{focus:cd.focus,energy:cd.energy,seeking:cd.seeking},horoscope:{weekly:w,monthly:m},
       birthDate:`${bd.year}-${String(bd.month).padStart(2,"0")}-${String(bd.day).padStart(2,"0")}`,
       birthTime:bd.unknownTime?"unknown":`${Math.floor(bd.localHour||12)}:${String(Math.round(((bd.localHour||12)%1)*60)).padStart(2,"0")}`,
       birthCity:bd.city
-    })}).catch(e=>console.error("Save failed:",e));
+    })}).then(r=>r.json()).then(d=>{if(d.success)console.log("Reading saved to backend");}).catch(e=>console.error("Save failed:",e));
   };
 
   // ── Data Bridge: save chat message ──
   const saveChat=(userMsg,aiMsg)=>{
-    if(!userIG&&!bd?.ig)return;
+    const identifier = userIG || bd?.ig || bd?.name || "";
+    if(!identifier)return;
     fetch("/api/user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-      action:"chat",ig:userIG||bd?.ig,userMsg,aiMsg
+      action:"chat",ig:identifier,userMsg,aiMsg
     })}).catch(()=>{});
   };
 
