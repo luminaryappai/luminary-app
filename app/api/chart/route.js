@@ -35,18 +35,24 @@ function calcAscendant(date, lat, lng) {
 }
 
 function getAspects(natal, transits) {
+  // Transit orbs tighter than natal (professional standard)
   const ASPECT_TYPES = [
-    { name: "conjunction", angle: 0, orb: 10, meaning: "merges with" },
-    { name: "sextile", angle: 60, orb: 6, meaning: "harmonizes with" },
-    { name: "square", angle: 90, orb: 8, meaning: "challenges" },
-    { name: "trine", angle: 120, orb: 8, meaning: "flows with" },
-    { name: "opposition", angle: 180, orb: 10, meaning: "opposes" },
+    { name: "conjunction", angle: 0, orb: 5, meaning: "merges with" },
+    { name: "sextile", angle: 60, orb: 3, meaning: "harmonizes with" },
+    { name: "square", angle: 90, orb: 4, meaning: "challenges" },
+    { name: "trine", angle: 120, orb: 4, meaning: "flows with" },
+    { name: "opposition", angle: 180, orb: 5, meaning: "opposes" },
   ];
+  // Wider orbs for approaching transit detection (next 30 days)
+  const APPROACH_ORBS = { conjunction: 12, sextile: 8, square: 10, trine: 10, opposition: 12 };
   const WEIGHTS = { Sun: 10, Moon: 8, Mercury: 5, Venus: 6, Mars: 7, Jupiter: 6, Saturn: 7, Uranus: 4, Neptune: 3, Pluto: 5, Ascendant: 8 };
   const AREAS = { Sun: "your core identity", Moon: "your emotional life", Mercury: "your mind and communication", Venus: "your love nature", Mars: "your drive and ambition", Jupiter: "your expansion and luck", Saturn: "your discipline and lessons", Uranus: "your need for change", Neptune: "your dreams and intuition", Pluto: "your power and transformation", Ascendant: "your self-presentation" };
+  const daysPerDegree = { Sun: 1, Moon: 0.08, Mercury: 1.2, Venus: 1.1, Mars: 1.9, Jupiter: 12, Saturn: 20, Uranus: 42, Neptune: 60, Pluto: 72 };
+  const fmt = d => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
   const aspects = [];
   let totalScore = 0;
+  const activeTransitPlanets = new Set();
 
   for (const [tk, tv] of Object.entries(transits)) {
     for (const [nk, nv] of Object.entries(natal)) {
@@ -57,40 +63,69 @@ function getAspects(natal, transits) {
 
       for (const asp of ASPECT_TYPES) {
         const orbActual = Math.abs(diff - asp.angle);
+        const approachOrb = APPROACH_ORBS[asp.name] || asp.orb * 2;
+        
         if (orbActual <= asp.orb) {
+          // ACTIVE transit — within tight orb
           const tightness = 1 - orbActual / asp.orb;
           const weight = ((WEIGHTS[tk] || 4) + (WEIGHTS[nk] || 4)) / 2;
           totalScore += tightness * weight;
+          activeTransitPlanets.add(tk);
 
-          // Estimate timing
-          const daysPerDegree = { Sun: 1, Moon: 0.08, Mercury: 1.2, Venus: 1.1, Mars: 1.9, Jupiter: 12, Saturn: 20, Uranus: 42, Neptune: 60, Pluto: 72 };
           const dpd = daysPerDegree[tk] || 5;
           const peakDays = Math.round(orbActual * dpd);
           const durationDays = Math.round(asp.orb * dpd * 2);
           const now = new Date();
           const peak = new Date(now);
           peak.setDate(peak.getDate() + (lonT > lonN ? peakDays : -peakDays));
-          const start = new Date(peak);
-          start.setDate(start.getDate() - Math.round(durationDays / 2));
-          const end = new Date(peak);
-          end.setDate(end.getDate() + Math.round(durationDays / 2));
-          const fmt = d => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+          const start = new Date(peak); start.setDate(start.getDate() - Math.round(durationDays / 2));
+          const end = new Date(peak); end.setDate(end.getDate() + Math.round(durationDays / 2));
 
           aspects.push({
-            transit: tk, natal: nk, aspect: asp.name,
+            transit: tk, natal: nk, aspect: asp.name, status: "active",
             orb: Math.round(orbActual * 10) / 10,
             tightness: Math.round(tightness * 100) / 100,
             meaning: asp.meaning, natalArea: AREAS[nk] || "your chart",
             timing: { peak: fmt(peak), start: fmt(start), end: fmt(end), duration: `~${durationDays} days` }
           });
+        } else if (orbActual <= approachOrb && orbActual > asp.orb) {
+          // APPROACHING transit — not yet active but coming soon
+          const dpd = daysPerDegree[tk] || 5;
+          const daysAway = Math.round((orbActual - asp.orb) * dpd);
+          if (daysAway <= 30) {
+            const approachDate = new Date();
+            approachDate.setDate(approachDate.getDate() + daysAway);
+            const durationDays = Math.round(asp.orb * dpd * 2);
+            const endDate = new Date(approachDate);
+            endDate.setDate(endDate.getDate() + durationDays);
+            
+            aspects.push({
+              transit: tk, natal: nk, aspect: asp.name, status: "approaching",
+              orb: Math.round(orbActual * 10) / 10,
+              tightness: Math.round((1 - orbActual / approachOrb) * 50) / 100,
+              meaning: asp.meaning, natalArea: AREAS[nk] || "your chart",
+              timing: { peak: fmt(approachDate), start: `~${daysAway} days away`, end: fmt(endDate), duration: `~${durationDays} days` }
+            });
+          }
         }
       }
     }
   }
 
-  aspects.sort((a, b) => b.tightness - a.tightness);
-  const maxPossible = Object.keys(transits).length * 10 * 0.5;
-  const intensity = Math.min(10, Math.max(1, Math.round(totalScore / maxPossible * 10)));
+  // Sort: active first (by tightness), then approaching (by days away)
+  aspects.sort((a, b) => {
+    if (a.status === "active" && b.status !== "active") return -1;
+    if (a.status !== "active" && b.status === "active") return 1;
+    return b.tightness - a.tightness;
+  });
+
+  // FIXED intensity: based on active aspects count and quality
+  const activeAspects = aspects.filter(a => a.status === "active");
+  const topWeight = activeAspects.slice(0, 5).reduce((s, a) => s + a.tightness, 0);
+  const countFactor = Math.min(activeAspects.length / 8, 1); // 8+ active = max
+  const qualityFactor = Math.min(topWeight / 3, 1); // top 5 tightness sum of 3+ = max
+  const rawIntensity = (countFactor * 0.4 + qualityFactor * 0.6) * 10;
+  const intensity = Math.min(10, Math.max(1, Math.round(rawIntensity)));
 
   return { aspects, intensity };
 }

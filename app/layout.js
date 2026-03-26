@@ -1,3 +1,6 @@
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
+
 export const metadata = {
   title: "Luminary — Personalized Astrology",
   description: "AI-crafted horoscope slides based on your exact natal chart",
@@ -16,7 +19,11 @@ export default function RootLayout({ children }) {
         <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body style={{ margin: 0, padding: 0, background: "#0B0F14" }}>{children}</body>
+      <body style={{ margin: 0, padding: 0, background: "#0B0F14" }}>
+        {children}
+        <Analytics />
+        <SpeedInsights />
+      </body>
     </html>
   );
 }

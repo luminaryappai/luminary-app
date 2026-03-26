@@ -209,7 +209,36 @@ const InputScreen=({onSubmit,onRegister})=>{
   const[nm,setNm]=useState(""),[ig,setIg]=useState(""),[pw,setPw]=useState(""),[dt,setDt]=useState(""),[tm,setTm]=useState(""),[noTm,setNoTm]=useState(false);
   const[cq,setCq]=useState(""),[sel,setSel]=useState(null),[show,setShow]=useState(false);
   const[registering,setRegistering]=useState(false);
-  const filt=()=>!cq||cq.length<2?[]:CITIES.filter(c=>c.n.toLowerCase().includes(cq.toLowerCase())).slice(0,10);
+  const[geoResults,setGeoResults]=useState([]);
+  const[geoLoading,setGeoLoading]=useState(false);
+  const geoTimer=useRef(null);
+  
+  // Live geocode search with debounce
+  const searchCity=(q)=>{
+    setCq(q);setSel(null);setShow(true);
+    if(geoTimer.current)clearTimeout(geoTimer.current);
+    if(q.length<3){setGeoResults([]);return;}
+    // First check local cities for instant results
+    const local=CITIES.filter(c=>c.n.toLowerCase().includes(q.toLowerCase())).slice(0,5);
+    if(local.length>0)setGeoResults(local);
+    // Then fetch from geocode API for anything not in local list
+    geoTimer.current=setTimeout(async()=>{
+      setGeoLoading(true);
+      try{
+        const r=await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
+        const d=await r.json();
+        if(d.results&&d.results.length>0){
+          // Merge local + API results, dedupe by name similarity
+          const merged=[...local];
+          for(const res of d.results){
+            if(!merged.some(m=>m.n.toLowerCase().includes(res.n.split(',')[0].toLowerCase())))merged.push(res);
+          }
+          setGeoResults(merged.slice(0,10));
+        }
+      }catch(e){/* keep local results */}
+      setGeoLoading(false);
+    },400);
+  };
   const sub=async()=>{if(!nm||!dt||!sel)return;
     // Try to register if they provided IG + password, but don't block if it fails
     if(onRegister&&ig&&pw&&pw.length>=4){
@@ -233,9 +262,10 @@ const InputScreen=({onSubmit,onRegister})=>{
       <div style={{marginBottom:8}}><label style={ls}>Birth Time</label><input type="time" style={{...is,opacity:noTm?.3:1}} disabled={noTm} value={tm} onChange={e=>setTm(e.target.value)}/></div>
       <div style={{marginBottom:20,display:"flex",alignItems:"center",gap:8}}><input type="checkbox" id="nt" onChange={e=>setNoTm(e.target.checked)} style={{accentColor:K.gold}}/><label htmlFor="nt" style={{fontSize:13,color:K.dim,fontFamily:f2,cursor:"pointer"}}>I don't know my birth time</label></div>
       <div style={{marginBottom:28,position:"relative"}}><label style={ls}>Birth City</label>
-        <input style={is} placeholder="Start typing a city..." value={cq} onChange={e=>{setCq(e.target.value);setSel(null);setShow(true);}} onFocus={()=>{if(cq.length>=2)setShow(true);}}/>
+        <input style={is} placeholder="Start typing any city..." value={cq} onChange={e=>searchCity(e.target.value)} onFocus={()=>{if(cq.length>=2)setShow(true);}}/>
         {sel&&<p style={{fontSize:12,color:K.sage,marginTop:4,fontFamily:f2}}>✓ {sel.n}</p>}
-        {show&&filt().length>0&&!sel&&<div style={{position:"absolute",top:"100%",left:0,right:0,background:"#131920",border:"1px solid #1E2A36",borderRadius:6,maxHeight:260,overflowY:"auto",zIndex:100,marginTop:4}}>{filt().map((c,i)=><div key={i} onClick={()=>{setSel(c);setCq(c.n);setShow(false);}} style={{padding:"12px 14px",cursor:"pointer",borderBottom:"1px solid #1E2A36",color:K.cream,fontSize:15,fontFamily:f2}}>{c.n}</div>)}</div>}
+        {geoLoading&&!sel&&<p style={{fontSize:11,color:K.dim,marginTop:4,fontFamily:f2}}>Searching...</p>}
+        {show&&geoResults.length>0&&!sel&&<div style={{position:"absolute",top:"100%",left:0,right:0,background:"#131920",border:"1px solid #1E2A36",borderRadius:6,maxHeight:260,overflowY:"auto",zIndex:100,marginTop:4}}>{geoResults.map((c,i)=><div key={i} onClick={()=>{setSel(c);setCq(c.n);setShow(false);}} style={{padding:"12px 14px",cursor:"pointer",borderBottom:"1px solid #1E2A36",color:K.cream,fontSize:15,fontFamily:f2}}>{c.n}</div>)}</div>}
       </div>
       <button onClick={sub} disabled={registering} style={{width:"100%",padding:"15px",background:(sel&&nm&&dt)?K.gold:"#333",color:(sel&&nm&&dt)?"#0B0F14":"#666",border:"none",borderRadius:6,fontSize:14,fontWeight:600,letterSpacing:2,textTransform:"uppercase",cursor:(sel&&nm&&dt)?"pointer":"default",fontFamily:f2,opacity:registering?.5:1}}>{registering?"Creating account...":"Continue"}</button>
     </div></FadeIn>
@@ -291,7 +321,7 @@ const ChartView=({chartData,name,onContinue})=>{
 const SlidesView=({name,chartData,weekly,monthly,onChat,onShare,onBirthChart})=>{
   const[tab,setTab]=useState("weekly"),[idx,setIdx]=useState(0);const touchRef=useRef(0);
   const aspects=chartData.aspects||[];
-  const transitCards=aspects.slice(0,6).map(a=>({title:`${a.transit} → ${a.natal}`,subtitle:`${a.aspect.toUpperCase()} • Intensity: ${Math.round(a.tightness*100)}%${a.timing?" • "+a.timing.duration:""}`,body:`Transit ${a.transit} ${a.meaning} your natal ${a.natal}, activating ${a.natalArea}. ${a.timing?"This transit peaks around "+a.timing.peak+" and is active from "+a.timing.start+" to "+a.timing.end+". ":""}${a.tightness>.8?"You are likely feeling this powerfully in your daily life right now.":a.tightness>.5?"This is a significant influence shaping your current experience.":"This is a subtle current in the background."}`}));
+  const transitCards=aspects.slice(0,10).map(a=>({title:`${a.transit} → ${a.natal}`,subtitle:`${a.aspect.toUpperCase()} • ${a.status==="approaching"?"APPROACHING":"Intensity: "+Math.round(a.tightness*100)+"%"}${a.timing?" • "+a.timing.duration:""}`,body:`${a.status==="approaching"?"Coming soon: Transit ":"Transit "}${a.transit} ${a.meaning} your natal ${a.natal}, activating ${a.natalArea}. ${a.timing?a.status==="approaching"?"This transit activates around "+a.timing.peak+". ":"This transit peaks around "+a.timing.peak+" and is active from "+a.timing.start+" to "+a.timing.end+". ":""}${a.status==="approaching"?"Start watching for this energy building in your life.":a.tightness>.8?"You are likely feeling this powerfully in your daily life right now.":a.tightness>.5?"This is a significant influence shaping your current experience.":"This is a subtle current in the background."}`,approaching:a.status==="approaching"}));
   const tabs={weekly,monthly,chart:transitCards};
   const slides=tabs[tab]||weekly;
   const prev=()=>{if(idx>0)setIdx(idx-1);};const next=()=>{if(idx<slides.length-1)setIdx(idx+1);};
