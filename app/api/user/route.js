@@ -41,7 +41,7 @@ async function save(k, v) {
   cache.set(k, json);
   try {
     await put(`users/${k}.json`, json, {
-      access: 'public',
+      access: 'private',
       addRandomSuffix: false,
       allowOverwrite: true,
       contentType: 'application/json'
@@ -118,7 +118,7 @@ export async function GET(request) {
   if (action === "debug") {
     const results = { token: !!process.env.BLOB_READ_WRITE_TOKEN, cacheSize: cache.size, cacheLoaded };
     try {
-      const blob = await put('test/ping.json', JSON.stringify({ t: Date.now() }), { access: 'public', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json' });
+      const blob = await put('test/ping.json', JSON.stringify({ t: Date.now() }), { access: 'private', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json' });
       results.writeTest = { ok: true, url: blob.url };
     } catch (e) { results.writeTest = { ok: false, err: e.message }; }
     try {
