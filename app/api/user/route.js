@@ -1,5 +1,4 @@
-/* /api/user/route.js — User persistence with Vercel Blob (FREE, survives deploys) */
-
+/* /api/user/route.js — Vercel Blob persistent storage (FREE) */
 import { put, list, del as blobDel } from '@vercel/blob';
 
 const cache = new Map();
@@ -14,25 +13,45 @@ function hash(s) {
 async function loadCache() {
   if (cacheLoaded) return;
   try {
-    const { blobs } = await list({ prefix: 'users/' });
-    for (const blob of blobs) {
-      try {
-        const res = await fetch(blob.url);
-        const data = await res.json();
-        const key = blob.pathname.replace('users/', '').replace('.json', '');
-        cache.set(key, JSON.stringify(data));
-      } catch (e) { /* skip corrupted */ }
+    const result = await list({ prefix: 'users/' });
+    if (result && result.blobs) {
+      for (const blob of result.blobs) {
+        try {
+          const res = await fetch(blob.url);
+          if (res.ok) {
+            const data = await res.json();
+            const key = blob.pathname.replace('users/', '').replace('.json', '');
+            cache.set(key, JSON.stringify(data));
+          }
+        } catch (e) { /* skip */ }
+      }
     }
     cacheLoaded = true;
-  } catch (e) { console.error('Cache load:', e.message); cacheLoaded = true; }
+    console.log('Cache loaded:', cache.size, 'users from blob');
+  } catch (e) {
+    console.error('Cache load error:', e.message);
+    cacheLoaded = true;
+  }
 }
 
 function get(k) { const v = cache.get(k); return v ? JSON.parse(v) : null; }
-async function set(k, v) {
+
+async function save(k, v) {
   const json = JSON.stringify(v);
   cache.set(k, json);
-  try { await put(`users/${k}.json`, json, { access: 'public', addRandomSuffix: false }); } catch (e) { console.error('Blob write:', e.message); }
+  try {
+    await put(`users/${k}.json`, json, {
+      access: 'public',
+      addRandomSuffix: false,
+      allowOverwrite: true,
+      contentType: 'application/json'
+    });
+    console.log('Blob saved:', k);
+  } catch (e) {
+    console.error('Blob save error:', k, e.message);
+  }
 }
+
 function scan(prefix) { return Array.from(cache.keys()).filter(k => k.startsWith(prefix)); }
 
 export async function GET(request) {
@@ -49,14 +68,17 @@ export async function GET(request) {
     if (!user) return Response.json({ found: false });
     if (user.pw !== pw) return Response.json({ error: "Wrong password" }, { status: 401 });
     user.lastActiveAt = new Date().toISOString();
-    await set(key, user);
+    await save(key, user);
     return Response.json({ found: true, data: { ...user, pw: undefined } });
   }
 
   if (action === "list" && p.get("mk") === "fateh0505") {
     const keys = scan("lu_");
     const users = [];
-    for (const k of keys) { const d = get(k); if (d) users.push({ key: k, name: d.name, ig: d.ig, sun: d.chart?.Sun?.sign, moon: d.chart?.Moon?.sign, rising: d.chart?.Ascendant?.sign, city: d.birthCity, readings: d.readingCount || 1, lastActive: d.lastActiveAt, firstSeen: d.firstSeen }); }
+    for (const k of keys) {
+      const d = get(k);
+      if (d) users.push({ key: k, name: d.name, ig: d.ig, sun: d.chart?.Sun?.sign, moon: d.chart?.Moon?.sign, rising: d.chart?.Ascendant?.sign, city: d.birthCity, readings: d.readingCount || 1, lastActive: d.lastActiveAt, firstSeen: d.firstSeen });
+    }
     users.sort((a, b) => new Date(b.lastActive || 0) - new Date(a.lastActive || 0));
     return Response.json({ users, count: users.length });
   }
@@ -64,7 +86,10 @@ export async function GET(request) {
   if (action === "stats" && p.get("ak") === "84245577") {
     const keys = scan("lu_");
     const users = [];
-    for (const k of keys) { const d = get(k); if (d?.name) users.push({ name: d.name, ig: d.ig, sun: d.chart?.Sun?.sign, moon: d.chart?.Moon?.sign, rising: d.chart?.Ascendant?.sign, city: d.birthCity, readings: d.readingCount || 1, lastActive: d.lastActiveAt }); }
+    for (const k of keys) {
+      const d = get(k);
+      if (d?.name) users.push({ name: d.name, ig: d.ig, sun: d.chart?.Sun?.sign, moon: d.chart?.Moon?.sign, rising: d.chart?.Ascendant?.sign, city: d.birthCity, readings: d.readingCount || 1, lastActive: d.lastActiveAt });
+    }
     users.sort((a, b) => new Date(b.lastActive || 0) - new Date(a.lastActive || 0));
     return Response.json({ users, count: users.length });
   }
@@ -81,8 +106,27 @@ export async function GET(request) {
     const key = p.get("key");
     if (!key) return Response.json({ error: "Key required" }, { status: 400 });
     cache.delete(key);
-    try { await blobDel(`users/${key}.json`); } catch (e) {}
+    try {
+      const result = await list({ prefix: `users/${key}` });
+      if (result?.blobs?.length) {
+        for (const b of result.blobs) { await blobDel(b.url); }
+      }
+    } catch (e) {}
     return Response.json({ success: true, deleted: key });
+  }
+
+  if (action === "debug") {
+    const results = { token: !!process.env.BLOB_READ_WRITE_TOKEN, cacheSize: cache.size, cacheLoaded };
+    try {
+      const blob = await put('test/ping.json', JSON.stringify({ t: Date.now() }), { access: 'public', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json' });
+      results.writeTest = { ok: true, url: blob.url };
+    } catch (e) { results.writeTest = { ok: false, err: e.message }; }
+    try {
+      const r = await list({ prefix: 'users/' });
+      results.blobCount = r?.blobs?.length || 0;
+      results.blobPaths = r?.blobs?.map(b => b.pathname) || [];
+    } catch (e) { results.listTest = { ok: false, err: e.message }; }
+    return Response.json(results);
   }
 
   return Response.json({ error: "Invalid action" }, { status: 400 });
@@ -101,14 +145,14 @@ export async function POST(request) {
       const key = `lu_${hash(ig)}`;
       if (get(key)) return Response.json({ error: "Account exists" }, { status: 409 });
       const now = new Date().toISOString();
-      await set(key, { name: body.name, ig, pw: body.pw, chatHistory: [], sessions: [{ startedAt: now, lastActive: now, actions: 1 }], readingCount: 0, firstSeen: now, lastActiveAt: now });
+      await save(key, { name: body.name, ig, pw: body.pw, chatHistory: [], sessions: [{ startedAt: now, lastActive: now, actions: 1 }], readingCount: 0, firstSeen: now, lastActiveAt: now });
       return Response.json({ success: true, key });
     }
 
     if (action === "save") {
-      const ig = (body.ig || "").toLowerCase().replace("@", "").trim();
-      if (!ig) return Response.json({ error: "Identifier required" }, { status: 400 });
-      const key = `lu_${hash(ig)}`;
+      const identifier = (body.ig || body.name || "").toLowerCase().replace("@", "").trim();
+      if (!identifier) return Response.json({ error: "Identifier required" }, { status: 400 });
+      const key = `lu_${hash(identifier)}`;
       const user = get(key) || { firstSeen: new Date().toISOString() };
       const now = new Date().toISOString();
       if (body.chart) user.chart = body.chart;
@@ -130,22 +174,22 @@ export async function POST(request) {
       if (!last || last.lastActive < cutoff) { user.sessions.push({ startedAt: now, lastActive: now, actions: 1 }); }
       else { last.lastActive = now; last.actions = (last.actions || 0) + 1; }
       if (user.sessions.length > 30) user.sessions = user.sessions.slice(-30);
-      await set(key, user);
+      await save(key, user);
       return Response.json({ success: true });
     }
 
     if (action === "chat") {
-      const ig = (body.ig || "").toLowerCase().replace("@", "").trim();
-      if (!ig) return Response.json({ error: "Identifier required" }, { status: 400 });
-      const key = `lu_${hash(ig)}`;
-      const user = get(key) || { name: ig, ig, chatHistory: [], firstSeen: new Date().toISOString() };
+      const identifier = (body.ig || body.name || "").toLowerCase().replace("@", "").trim();
+      if (!identifier) return Response.json({ error: "Identifier required" }, { status: 400 });
+      const key = `lu_${hash(identifier)}`;
+      const user = get(key) || { name: identifier, ig: body.ig || "", chatHistory: [], firstSeen: new Date().toISOString() };
       const now = new Date().toISOString();
       if (!user.chatHistory) user.chatHistory = [];
       if (body.userMsg) user.chatHistory.push({ role: "user", content: body.userMsg, ts: now });
       if (body.aiMsg) user.chatHistory.push({ role: "assistant", content: body.aiMsg, ts: now });
       if (user.chatHistory.length > 150) user.chatHistory = user.chatHistory.slice(-150);
       user.lastActiveAt = now;
-      await set(key, user);
+      await save(key, user);
       return Response.json({ success: true });
     }
 
@@ -159,7 +203,7 @@ export async function POST(request) {
       if (body.tags) user.tags = body.tags;
       if (body.notes) user.notes = body.notes;
       if (body.verified !== undefined) user.verified = body.verified;
-      await set(key, user);
+      await save(key, user);
       return Response.json({ success: true });
     }
 
