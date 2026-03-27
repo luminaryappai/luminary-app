@@ -1,49 +1,56 @@
+/* /api/chat/route.js — Luminary AI Chat */
 import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new Anthropic();
 
-export async function POST(request) {
+// Deflection patterns — don't reveal how the app works
+const DEFLECT = [
+  /how (do|does) (it|you|luminary|this) (work|calculate|compute)/i,
+  /what (algorithm|method|formula|engine|library|ephemeris)/i,
+  /data (usage|privacy|collection|stored|security)/i,
+  /open.?source/i, /source code/i,
+  /what data do you (collect|store|use|track)/i,
+  /swiss ephemeris/i, /vsop/i, /calculation method/i,
+];
+const DEFLECT_RESPONSE = "I appreciate the curiosity, but Luminary's methodology is proprietary. What I can tell you is that your reading uses precision astronomical algorithms and your exact birth data. Let's focus on what the stars are telling you — what would you like to explore about your chart?";
+
+export async function POST(req) {
   try {
-    const body = await request.json();
-    const { messages, userName } = body;
+    const { messages, userName, chartContext } = await req.json();
 
-    if (!messages || !messages.length) {
-      return Response.json({ error: "No messages provided" }, { status: 400 });
+    // Check for deflection
+    const lastMsg = messages[messages.length - 1]?.content || "";
+    if (DEFLECT.some(p => p.test(lastMsg))) {
+      return Response.json({ reply: DEFLECT_RESPONSE });
     }
 
-    const systemPrompt = `You are Luminary AI, a personal astrologer created by @alwaysbbuilding5. You are warm, wise, specific, and actionable.
+    const systemPrompt = `You are Luminary AI, a warm and insightful personal astrologer chatting with ${userName || "a friend"}. 
+
+${chartContext ? `Their chart context: ${chartContext}` : ""}
+
+YOUR VOICE: Like talking to a gifted friend who happens to understand the cosmos. Empathetic first, astrological second. Use their name naturally. Reference their specific placements when relevant.
 
 RULES:
-- PRIVACY: This session is completely isolated. You have no memory of other users or sessions.
-- Reference specific degrees, aspects, and transits from the user's chart data (provided in the first message).
-- Always end with a question or offer to explore something deeper.
-- Under 120 words unless they ask for detail.
-- No jargon without immediately explaining what it means.
-- Empathy first — acknowledge feelings before astrology.
-- If someone asks how you work, your algorithms, data practices, or source code, say: "Luminary's methodology is proprietary. Your reading uses precision astronomical algorithms. What would you like to explore about your chart?"
-- Do NOT give dating strategy, manipulation techniques, or pickup advice. Astrology only for relationships.
-- Be specific — reference the exact planetary placements and transits in their chart.
-${userName ? `The querent's name is ${userName}.` : ""}`;
+- Always engage with empathy before astrology
+- If they share something personal, ACKNOWLEDGE it before interpreting
+- Keep responses 2-4 sentences unless they ask for detail
+- No degree symbols or heavy jargon
+- If asked about methodology/data/source code, deflect warmly
+- Make them feel seen and understood
+- If they ask about compatibility, be honest but kind`;
 
-    const message = await client.messages.create({
+    const response = await client.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 500,
+      max_tokens: 800,
       system: systemPrompt,
-      messages: messages,
+      messages: messages.map(m => ({ role: m.role, content: m.content })),
     });
 
-    const text = message.content[0]?.text || "The stars are quiet right now. Try asking again.";
-
-    console.log(JSON.stringify({
-      event: "chat",
-      userName: userName || "unknown",
-      msgPreview: (messages[messages.length - 1]?.content || "").substring(0, 100),
-      timestamp: new Date().toISOString(),
-    }));
-
-    return Response.json({ reply: text });
+    const reply = response.content[0].text;
+    console.log(JSON.stringify({ event: "CHAT_MSG", userName, timestamp: new Date().toISOString() }));
+    return Response.json({ reply });
   } catch (error) {
-    console.error("Chat API error:", error);
-    return Response.json({ error: error.message || "Failed to get response" }, { status: 500 });
+    console.error("Chat error:", error);
+    return Response.json({ reply: "The stars are a bit cloudy right now. Try again?" }, { status: 500 });
   }
 }
