@@ -11,9 +11,15 @@ export default function RootLayout({ children }) {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
       </head>
-      <body style={{ margin: 0, padding: 0, background: "#FAF6F0" }}>{children}<Analytics /><SpeedInsights /></body>
+      <body style={{ margin:0, padding:0, fontFamily:"'DM Sans',sans-serif", background:"#F3EDE3", display:"flex", justifyContent:"center", minHeight:"100vh" }}>
+        <div style={{ maxWidth:420, width:"100%", minHeight:"100vh", display:"flex", flexDirection:"column" }}>
+          {children}
+        </div>
+        <Analytics />
+        <SpeedInsights />
+      </body>
     </html>
   );
 }
