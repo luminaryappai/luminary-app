@@ -1,9 +1,0 @@
-{
-  "name": "Luminary",
-  "short_name": "Luminary",
-  "description": "Your week, before it happens.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#FBF7F0",
-  "theme_color": "#FBF7F0"
-}

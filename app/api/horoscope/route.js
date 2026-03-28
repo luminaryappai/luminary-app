@@ -1,55 +1,46 @@
-/* /api/horoscope/route.js — V7.5 Scroll Reading Format */
-import Anthropic from "@anthropic-ai/sdk";
-
-const client = new Anthropic();
+import { NextResponse } from "next/server";
 
 export async function POST(req) {
   try {
-    const { prompt, name } = await req.json();
+    const { chartText, name, focus, energy, seeking } = await req.json();
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 2000,
+        messages: [{ role: "user", content: `You are Luminary, a warm and insightful AI astrologer. You speak like a wise friend who happens to understand the stars deeply. You are empathetic, specific, and grounded. No jargon without translation. No degree symbols. Lead with what the person FEELS, then explain why astrologically.
 
-    const systemPrompt = `You are Luminary, giving ${name || "someone"} a private astrology reading.
+Chart data for ${name}: ${chartText}
+Life focus: ${focus}. Energy: ${energy}. Seeking: ${seeking}.
 
-YOUR VOICE: Smart funny friend who knows astrology. NOT a guru. Warm, specific, slightly dangerous. Make observations that land because they're uncomfortably accurate. Never generic. Never mean.
-
-YOUR TASK: Return a JSON object with these exact keys. Every value is a string. Include SPECIFIC DAYS and DATES (like "Wednesday evening", "around April 4th", "this Friday"). Never be vague.
-
+Generate a personalized reading. Return ONLY raw JSON (no markdown, no backticks):
 {
-  "hook": "One powerful sentence about their most active transit. Make them gasp. Be specific to THEIR chart.",
-  "weekLove": "2-3 sentences about love THIS WEEK. Include a specific day (e.g. 'Wednesday evening'). Reference their Venus/Mars.",
-  "weekWork": "2-3 sentences about career THIS WEEK. Include a specific day. Reference their Saturn/Jupiter.",
-  "weekEnergy": "2-3 sentences about energy THIS WEEK. Reference their Moon sign.",
-  "weekWarning": "One specific thing to watch for THIS WEEK with a specific day and time of day.",
-  "weekGift": "One good thing coming THIS WEEK with specific timing.",
-  "monthLove": "2-3 sentences about love THIS MONTH with specific dates.",
-  "monthCareer": "2-3 sentences about career THIS MONTH with specific dates.",
-  "monthGrowth": "2-3 sentences about personal growth THIS MONTH.",
-  "monthEnergy": "2-3 sentences about energy/health THIS MONTH.",
-  "yourLine": "Under 15 words. The screenshot moment. Memorable, slightly dangerous, true. This gets texted to friends."
+  "cards": [
+    {"area": "This Week's Energy", "planet": "♄", "title": "short evocative title", "body": "2-3 sentences of deeply personal insight tied to their specific transits and natal placements. Name specific days when possible."},
+    {"area": "Love & Connection", "planet": "♀", "title": "title", "body": "insight"},
+    {"area": "Career & Purpose", "planet": "☉", "title": "title", "body": "insight"},
+    {"area": "Inner World", "planet": "☽", "title": "title", "body": "insight"}
+  ],
+  "line": "One powerful sentence — their most important insight this week. This is what they screenshot and share.",
+  "mantra": "A personal mantra for this week based on their element and current transits."
 }
 
-RESPOND WITH ONLY THE JSON OBJECT. No markdown. No backticks. No preamble.`;
-
-    const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2000,
-      system: systemPrompt,
-      messages: [{ role: "user", content: prompt }],
+CRITICAL: Every insight must reference THEIR specific natal placements and current transits. Not generic sun sign content. This person's chart is unique — treat it that way. The "line" should be the kind of sentence that makes someone stop and screenshot it.` }],
+      }),
     });
 
-    const text = response.content[0].text.trim();
-    let slides;
-    try {
-      slides = JSON.parse(text.replace(/```json|```/g, "").trim());
-    } catch (e) {
-      const match = text.match(/\{[\s\S]*\}/);
-      if (match) slides = JSON.parse(match[0]);
-      else return Response.json({ error: "Failed to parse reading" }, { status: 500 });
-    }
-
-    console.log(JSON.stringify({ event: "HOROSCOPE_GENERATED", name, format: "scroll", timestamp: new Date().toISOString() }));
-    return Response.json({ slides });
-  } catch (error) {
-    console.error("Horoscope error:", error);
-    return Response.json({ error: error.message }, { status: 500 });
+    const data = await response.json();
+    let text = data.content?.[0]?.text || "";
+    text = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+    const parsed = JSON.parse(text);
+    return NextResponse.json(parsed);
+  } catch (e) {
+    console.error("Horoscope error:", e);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
