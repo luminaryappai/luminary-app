@@ -1,14 +1,11 @@
 /* ═══════════════════════════════════════════════════
-   /api/user/route.js — V7.5 FIXED
+   /api/user/route.js — V7.6 HOTFIX
    
-   ROOT CAUSE FIX: Private Blob stores require the SDK's
-   get() method to read blobs. fetch(url) returns 401.
-   
-   Uses: put, get, list, del from @vercel/blob
-   Storage: Vercel Blob (private, persistent, FREE)
+   Store is PUBLIC. access must be "public".
+   Public blobs are readable via fetch(url).
    ═══════════════════════════════════════════════════ */
 
-import { put, get, list, del } from "@vercel/blob";
+import { put, list, del } from "@vercel/blob";
 
 function hash(str) {
   let h = 0;
@@ -20,27 +17,23 @@ function hash(str) {
   return Math.abs(h).toString(36);
 }
 
-// ─── Read a user blob using SDK get() ───
 async function getUser(key) {
   try {
-    const result = await get(`users/${key}.json`, { access: "private" });
-    if (!result || result.statusCode === 404) return null;
-    // result has a stream, read it as text then parse
-    const text = await new Response(result.stream).text();
-    return JSON.parse(text);
+    const { blobs } = await list({ prefix: `users/${key}.json` });
+    if (!blobs || blobs.length === 0) return null;
+    const resp = await fetch(blobs[0].url);
+    if (!resp.ok) return null;
+    return await resp.json();
   } catch (e) {
-    // BlobNotFoundError or parse error
-    if (e.code === "blob_not_found" || e.message?.includes("not found")) return null;
     console.error("getUser error:", key, e.message);
     return null;
   }
 }
 
-// ─── Write a user blob ───
 async function setUser(key, data) {
   try {
     await put(`users/${key}.json`, JSON.stringify(data), {
-      access: "private",
+      access: "public",
       addRandomSuffix: false,
       allowOverwrite: true,
       contentType: "application/json",
@@ -52,10 +45,12 @@ async function setUser(key, data) {
   }
 }
 
-// ─── Delete a user blob ───
 async function deleteUser(key) {
   try {
-    await del(`users/${key}.json`);
+    const { blobs } = await list({ prefix: `users/${key}.json` });
+    if (blobs && blobs.length > 0) {
+      for (const b of blobs) await del(b.url);
+    }
     return true;
   } catch (e) {
     console.error("deleteUser error:", key, e.message);
@@ -63,25 +58,21 @@ async function deleteUser(key) {
   }
 }
 
-// ─── GET endpoints ───
 export async function GET(req) {
   const url = new URL(req.url);
   const action = url.searchParams.get("action");
 
-  // Debug endpoint — test blob connection
   if (action === "debug") {
     const results = { token: !!process.env.BLOB_READ_WRITE_TOKEN, cacheSize: 0, cacheLoaded: false };
     try {
-      // Test write
       const blob = await put("test/ping.json", JSON.stringify({ t: Date.now() }), {
-        access: "private", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json",
+        access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json",
       });
       results.writeTest = { ok: true, url: blob.url };
     } catch (e) {
       results.writeTest = { ok: false, error: e.message };
     }
     try {
-      // List all blobs
       const { blobs } = await list({ prefix: "users/" });
       results.blobCount = blobs.length;
       results.blobPaths = blobs.map(b => b.pathname);
@@ -92,19 +83,15 @@ export async function GET(req) {
     return Response.json(results);
   }
 
-  // List all users (for admin + /sys)
   if (action === "list") {
-    const mk = url.searchParams.get("mk") || "";
     try {
       const { blobs } = await list({ prefix: "users/" });
       const users = [];
       for (const b of blobs) {
         try {
-          // Use SDK get() for private blobs — NOT fetch()
-          const result = await get(b.pathname, { access: "private" });
-          if (result && result.statusCode !== 404) {
-            const text = await new Response(result.stream).text();
-            const u = JSON.parse(text);
+          const resp = await fetch(b.url);
+          if (resp.ok) {
+            const u = await resp.json();
             users.push({
               key: b.pathname.replace("users/", "").replace(".json", ""),
               name: u.name || "",
@@ -133,7 +120,6 @@ export async function GET(req) {
     }
   }
 
-  // Login
   if (action === "login") {
     const ig = (url.searchParams.get("ig") || "").toLowerCase().replace("@", "").trim();
     const pw = url.searchParams.get("pw") || "";
@@ -147,7 +133,6 @@ export async function GET(req) {
     return Response.json({ user: { ...user, password: undefined } });
   }
 
-  // Deep user detail (for /sys)
   if (action === "deep") {
     const mk = url.searchParams.get("mk") || "";
     if (mk !== "fateh0505" && mk !== "84245577") return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -162,14 +147,12 @@ export async function GET(req) {
   return Response.json({ error: "Invalid action" }, { status: 400 });
 }
 
-// ─── POST endpoints ───
 export async function POST(req) {
   try {
     const body = await req.json();
     const action = body.action;
     const now = new Date().toISOString();
 
-    // Register
     if (action === "register") {
       const ig = (body.ig || "").toLowerCase().replace("@", "").trim();
       const name = (body.name || "").trim();
@@ -192,7 +175,6 @@ export async function POST(req) {
       return Response.json({ success: true, key });
     }
 
-    // Save reading
     if (action === "save") {
       const ig = (body.ig || "").toLowerCase().replace("@", "").trim();
       const name = (body.name || "").trim();
@@ -228,7 +210,6 @@ export async function POST(req) {
       return Response.json({ success: true });
     }
 
-    // Chat append
     if (action === "chat") {
       const ig = (body.ig || "").toLowerCase().replace("@", "").trim();
       const name = (body.name || "").trim();
@@ -236,10 +217,7 @@ export async function POST(req) {
       if (!identifier) return Response.json({ error: "Name or IG required" }, { status: 400 });
       const key = `lu_${hash(identifier)}`;
       let user = await getUser(key);
-      if (!user) {
-        // Auto-create user from chat
-        user = { name: name, ig: ig, createdAt: now, chatHistory: [] };
-      }
+      if (!user) user = { name: name, ig: ig, createdAt: now, chatHistory: [] };
       if (!user.chatHistory) user.chatHistory = [];
       if (body.userMsg) user.chatHistory.push({ role: "user", content: body.userMsg, ts: now });
       if (body.aiMsg) user.chatHistory.push({ role: "assistant", content: body.aiMsg, ts: now });
@@ -250,7 +228,6 @@ export async function POST(req) {
       return Response.json({ success: true });
     }
 
-    // Delete (admin)
     if (action === "delete") {
       const mk = body.mk || "";
       if (mk !== "84245577" && mk !== "fateh0505") return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -261,7 +238,6 @@ export async function POST(req) {
       return Response.json({ success: true });
     }
 
-    // Deep save (for /sys command center)
     if (action === "deepsave") {
       const mk = body.mk || "";
       if (mk !== "fateh0505") return Response.json({ error: "Unauthorized" }, { status: 401 });
