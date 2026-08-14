@@ -20,43 +20,54 @@ async function searchCity(q){if(q.length<2)return[];const local=CITIES.filter(c=
 async function saveReading(d){try{await fetch("/api/user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"save",...d})});}catch{}}
 async function saveChatHist(key,h){try{await fetch("/api/user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"saveChat",key,chatHistory:h})});}catch{}}
 
-/* ═══ V6 ORRERY ═══ */
+/* ═══ BREATHING + SPINNING ORRERY (Spinner ⑦ from orrery v2 — Mat's pick) ═══
+   Arcs rotate 4s/6s/9s alternating; opacity breathes 6s/8s/10s; sun core pulses.
+   Hero uses slow=3x durations so 440px stays hypnotic, not frantic. */
+function OrrerySVG({size=48,slow=1}){
+  const d=(n)=>(n*slow)+"s";
+  return(
+    <svg width={size} height={size} viewBox="0 0 100 100" style={{display:"block"}}>
+      <circle cx="50" cy="50" r="5" fill="#BF8C3E">
+        <animate attributeName="r" values="4;6;4" dur={d(3)} repeatCount="indefinite"/>
+      </circle>
+      <circle cx="50" cy="50" r="20" fill="none" stroke="rgba(196,131,106,0.38)" strokeWidth="5.5" strokeDasharray="90 35" strokeLinecap="round">
+        <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur={d(4)} repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.7;1;0.7" dur={d(6)} repeatCount="indefinite"/>
+      </circle>
+      <circle cx="50" cy="30" r="4.5" fill="#C4836A" opacity="0.85">
+        <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur={d(4)} repeatCount="indefinite"/>
+      </circle>
+      <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(126,154,108,0.3)" strokeWidth="4.5" strokeDasharray="155 58" strokeLinecap="round">
+        <animateTransform attributeName="transform" type="rotate" from="360 50 50" to="0 50 50" dur={d(6)} repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.5;0.9;0.5" dur={d(8)} repeatCount="indefinite"/>
+      </circle>
+      <circle cx="50" cy="16" r="5.5" fill="#7E9A6C" opacity="0.75">
+        <animateTransform attributeName="transform" type="rotate" from="360 50 50" to="0 50 50" dur={d(6)} repeatCount="indefinite"/>
+      </circle>
+      <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(141,128,184,0.2)" strokeWidth="3" strokeDasharray="210 78" strokeLinecap="round">
+        <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur={d(9)} repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.4;0.8;0.4" dur={d(10)} repeatCount="indefinite"/>
+      </circle>
+      <circle cx="50" cy="4" r="4" fill="#8D80B8" opacity="0.55">
+        <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur={d(9)} repeatCount="indefinite"/>
+      </circle>
+      <circle cx="92" cy="30" r="2.8" fill="#BF8C3E" opacity="0.4">
+        <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur={d(9)} repeatCount="indefinite"/>
+      </circle>
+    </svg>
+  );
+}
+
 function Orrery(){
   return(
     <div style={{position:"absolute",top:-60,right:-120,width:440,height:440,zIndex:1,opacity:0,transform:"scale(0.5) rotate(-40deg)",animation:"orrIn 2.2s cubic-bezier(0.16,1,0.3,1) 0.1s forwards"}}>
-      <div style={{position:"absolute",width:28,height:28,borderRadius:"50%",top:206,left:206,background:"radial-gradient(circle,#E8C98A 0%,#BF8C3E 50%,rgba(191,140,62,0.2) 100%)",boxShadow:"0 0 30px rgba(218,176,98,0.35),0 0 60px rgba(218,176,98,0.1)"}}/>
-      <div style={{position:"absolute",borderRadius:"50%",width:120,height:120,top:160,left:160,borderWidth:6,borderStyle:"solid",borderColor:"rgba(196,131,106,0.18)",animation:"orb 45s linear infinite"}}>
-        <div style={{position:"absolute",borderRadius:"50%",width:14,height:14,background:P.terra,top:"-50%",left:"50%",margin:"-7px 0 0 -7px",boxShadow:"0 0 12px rgba(196,131,106,0.5)"}}/>
-      </div>
-      <div style={{position:"absolute",borderRadius:"50%",width:200,height:200,top:120,left:120,borderWidth:8,borderStyle:"solid",borderColor:"rgba(122,148,104,0.14)",animation:"orb 65s linear infinite reverse"}}>
-        <div style={{position:"absolute",borderRadius:"50%",width:18,height:18,background:P.sage,top:"-50%",left:"50%",margin:"-9px 0 0 -9px",boxShadow:"0 0 14px rgba(122,148,104,0.4)"}}/>
-      </div>
-      <div style={{position:"absolute",borderRadius:"50%",width:300,height:300,top:70,left:70,borderWidth:5,borderStyle:"solid",borderColor:"rgba(141,128,184,0.10)",animation:"orb 90s linear infinite"}}>
-        <div style={{position:"absolute",borderRadius:"50%",width:12,height:12,background:P.violet,top:"-50%",left:"50%",margin:"-6px 0 0 -6px",boxShadow:"0 0 10px rgba(141,128,184,0.4)"}}/>
-      </div>
-      <div style={{position:"absolute",borderRadius:"50%",width:400,height:400,top:20,left:20,borderWidth:3,borderStyle:"solid",borderColor:"rgba(191,140,62,0.06)",animation:"orb 120s linear infinite reverse"}}>
-        <div style={{position:"absolute",borderRadius:"50%",width:8,height:8,background:P.gold,opacity:0.5,top:"-50%",left:"50%",margin:"-4px 0 0 -4px",boxShadow:"0 0 8px rgba(191,140,62,0.3)"}}/>
-      </div>
+      <OrrerySVG size={440} slow={3}/>
     </div>
   );
 }
 
 function Spinner({size=48}){
-  const s=size/48;
-  return(
-    <div style={{display:"inline-block",width:size,height:size,position:"relative"}}>
-      <div style={{position:"absolute",borderRadius:"50%",width:18*s,height:18*s,top:15*s,left:15*s,borderWidth:Math.max(1,3*s),borderStyle:"solid",borderColor:"rgba(196,131,106,0.3)",animation:"orb 6s linear infinite"}}>
-        <div style={{position:"absolute",width:5*s,height:5*s,borderRadius:"50%",background:P.terra,top:"-50%",left:"50%",marginLeft:-2.5*s,marginTop:-2.5*s}}/>
-      </div>
-      <div style={{position:"absolute",borderRadius:"50%",width:32*s,height:32*s,top:8*s,left:8*s,borderWidth:Math.max(1,2*s),borderStyle:"solid",borderColor:"rgba(122,148,104,0.2)",animation:"orb 10s linear infinite reverse"}}>
-        <div style={{position:"absolute",width:4*s,height:4*s,borderRadius:"50%",background:P.sage,top:"-50%",left:"50%",marginLeft:-2*s,marginTop:-2*s}}/>
-      </div>
-      <div style={{position:"absolute",borderRadius:"50%",width:46*s,height:46*s,top:1*s,left:1*s,borderWidth:Math.max(1,1.5*s),borderStyle:"solid",borderColor:"rgba(141,128,184,0.15)",animation:"orb 16s linear infinite"}}>
-        <div style={{position:"absolute",width:3*s,height:3*s,borderRadius:"50%",background:P.violet,top:"-50%",left:"50%",marginLeft:-1.5*s,marginTop:-1.5*s}}/>
-      </div>
-      <div style={{width:7*s,height:7*s,borderRadius:"50%",background:"radial-gradient(circle,#E8C98A,#BF8C3E)",position:"absolute",top:20.5*s,left:20.5*s,boxShadow:"0 0 8px rgba(218,176,98,0.3)"}}/>
-    </div>
-  );
+  return(<div style={{display:"inline-block",width:size,height:size}}><OrrerySVG size={size}/></div>);
 }
 
 function LoadingScreen({name}){
@@ -146,13 +157,9 @@ function Questions({onSubmit,name}){
 
 /* ═══ READING — 38px header, Your Line card with signature orrery ═══ */
 function MiniOrrery({size=44,opacity=0.35}){
-  const s=size/44;
   return(
     <div style={{position:"absolute",top:14,right:14,width:size,height:size,opacity,pointerEvents:"none"}}>
-      <div style={{position:"absolute",width:16*s,height:16*s,top:14*s,left:14*s,borderRadius:"50%",borderWidth:Math.max(1,2*s),borderStyle:"solid",borderColor:"rgba(196,131,106,0.6)",animation:"orb 7s linear infinite"}}><div style={{width:4*s,height:4*s,borderRadius:"50%",background:P.terra,position:"absolute",top:-2*s,left:"50%",marginLeft:-2*s}}/></div>
-      <div style={{position:"absolute",width:30*s,height:30*s,top:7*s,left:7*s,borderRadius:"50%",borderWidth:Math.max(1,1.5*s),borderStyle:"solid",borderColor:"rgba(122,148,104,0.5)",animation:"orb 12s linear infinite reverse"}}><div style={{width:3.5*s,height:3.5*s,borderRadius:"50%",background:P.sage,position:"absolute",top:-1.75*s,left:"50%",marginLeft:-1.75*s}}/></div>
-      <div style={{position:"absolute",width:42*s,height:42*s,top:1*s,left:1*s,borderRadius:"50%",borderWidth:1,borderStyle:"solid",borderColor:"rgba(141,128,184,0.4)",animation:"orb 18s linear infinite"}}><div style={{width:2.5*s,height:2.5*s,borderRadius:"50%",background:P.violet,position:"absolute",top:-1.25*s,left:"50%",marginLeft:-1.25*s}}/></div>
-      <div style={{width:6*s,height:6*s,borderRadius:"50%",background:"radial-gradient(circle,#E8C98A,#BF8C3E)",position:"absolute",top:19*s,left:19*s,boxShadow:"0 0 10px rgba(218,176,98,0.5)"}}/>
+      <OrrerySVG size={size}/>
     </div>
   );
 }
@@ -263,12 +270,12 @@ function ReadingScreen({chart,reading,name,onChat,onReset,onShareable}){
           </div>
         </div>
       ))}
-      <div style={{display:"flex",alignItems:"center",gap:10,margin:"20px 0 16px"}}><div style={{flex:1,height:1,background:"rgba(42,33,24,0.05)"}}/><span style={{fontFamily:SN,fontSize:7,letterSpacing:3,color:P.fn,textTransform:"uppercase"}}>your line</span><div style={{flex:1,height:1,background:"rgba(42,33,24,0.05)"}}/></div>
+      <div style={{display:"flex",alignItems:"center",gap:10,margin:"20px 0 16px"}}><div style={{flex:1,height:1,background:"rgba(42,33,24,0.05)"}}/><span style={{fontFamily:SN,fontSize:7,letterSpacing:3,color:P.fn,textTransform:"uppercase"}}>star note</span><div style={{flex:1,height:1,background:"rgba(42,33,24,0.05)"}}/></div>
       {reading.line&&(
         <div onClick={onShareable} style={{background:"linear-gradient(135deg,#F5EDE0 0%,#F6EDD9 55%,#F5EBE5 100%)",border:"1px solid rgba(191,140,62,0.14)",borderRadius:14,padding:"26px 20px",position:"relative",overflow:"hidden",cursor:"pointer",boxShadow:SH3}}>
         <div style={{position:"absolute",top:-30,right:-20,width:160,height:160,background:"radial-gradient(circle,rgba(191,140,62,0.1) 0%,transparent 55%)"}}/>
           <MiniOrrery size={52} opacity={0.4}/>
-          <div style={{fontFamily:SN,fontSize:6,letterSpacing:3,color:P.lt,textTransform:"uppercase",marginBottom:10}}>luminary · your line</div>
+          <div style={{fontFamily:SN,fontSize:6,letterSpacing:3,color:P.lt,textTransform:"uppercase",marginBottom:10}}>luminary · star note</div>
           <blockquote style={{fontFamily:SR,fontSize:17,fontWeight:300,color:P.ink,lineHeight:1.58,margin:0,fontStyle:"italic",position:"relative",zIndex:1,maxWidth:"85%"}}>"{reading.line}"</blockquote>
           <div style={{marginTop:14,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
             <div>
@@ -288,7 +295,7 @@ function ReadingScreen({chart,reading,name,onChat,onReset,onShareable}){
           <div style={{fontFamily:SR,fontSize:15,color:P.ink,fontStyle:"italic",lineHeight:1.5,fontWeight:300}}>{reading.mantra}</div>
         </div>
       )}
-      <button onClick={onChat} style={{position:"fixed",bottom:20,right:20,zIndex:100,fontFamily:SN,fontSize:10,fontWeight:500,letterSpacing:0.8,color:"#FAF6F0",background:P.ink,border:"none",padding:"9px 18px",borderRadius:20,cursor:"pointer",boxShadow:"0 3px 16px rgba(42,33,24,0.18)",display:"flex",alignItems:"center",gap:5}}>
+      <button onClick={onChat} style={{position:"fixed",bottom:20,right:20,zIndex:100,fontFamily:SN,fontSize:11,fontWeight:500,letterSpacing:0.8,color:"#FAF6F0",background:P.ink,border:"none",padding:"12px 22px",borderRadius:24,cursor:"pointer",boxShadow:"0 4px 20px rgba(42,33,24,0.25)",display:"flex",alignItems:"center",gap:5}}>
         <span style={{fontSize:12,opacity:0.7}}>✦</span> Ask Luminary
       </button>
     </div>
@@ -393,7 +400,7 @@ function BirthChartScreen({chart,analysis,name,onChat}){
           {analysis.soulMantra&&<div style={{background:P.goldBg,border:"1px solid rgba(191,140,62,0.1)",borderRadius:14,padding:"18px 20px",marginTop:16,textAlign:"center"}}><div style={{fontFamily:SN,fontSize:7,letterSpacing:3,color:P.gold,textTransform:"uppercase",marginBottom:6}}>soul mantra</div><p style={{fontFamily:SR,fontSize:16,color:P.ink,fontStyle:"italic",lineHeight:1.5,fontWeight:300}}>{analysis.soulMantra}</p></div>}
         </>
       )}
-      <button onClick={onChat} style={{position:"fixed",bottom:20,right:20,zIndex:100,fontFamily:SN,fontSize:10,fontWeight:500,letterSpacing:0.8,color:"#FAF6F0",background:P.ink,border:"none",padding:"9px 18px",borderRadius:20,cursor:"pointer",boxShadow:"0 3px 16px rgba(42,33,24,0.18)",display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12,opacity:0.7}}>✦</span> Ask Luminary</button>
+      <button onClick={onChat} style={{position:"fixed",bottom:20,right:20,zIndex:100,fontFamily:SN,fontSize:11,fontWeight:500,letterSpacing:0.8,color:"#FAF6F0",background:P.ink,border:"none",padding:"12px 22px",borderRadius:24,cursor:"pointer",boxShadow:"0 4px 20px rgba(42,33,24,0.25)",display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12,opacity:0.7}}>✦</span> Ask Luminary</button>
     </div>
   );
 }
@@ -444,7 +451,7 @@ function HDScreen({chart,analysis,name,onChat}){
           )}
         </>
       )}
-      <button onClick={onChat} style={{position:"fixed",bottom:20,right:20,zIndex:100,fontFamily:SN,fontSize:10,fontWeight:500,letterSpacing:0.8,color:"#FAF6F0",background:P.ink,border:"none",padding:"9px 18px",borderRadius:20,cursor:"pointer",boxShadow:"0 3px 16px rgba(42,33,24,0.18)",display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12,opacity:0.7}}>✦</span> Ask Luminary</button>
+      <button onClick={onChat} style={{position:"fixed",bottom:20,right:20,zIndex:100,fontFamily:SN,fontSize:11,fontWeight:500,letterSpacing:0.8,color:"#FAF6F0",background:P.ink,border:"none",padding:"12px 22px",borderRadius:24,cursor:"pointer",boxShadow:"0 4px 20px rgba(42,33,24,0.25)",display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12,opacity:0.7}}>✦</span> Ask Luminary</button>
     </div>
   );
 }
@@ -454,7 +461,7 @@ function ShareableScreen({reading,name,chart,onBack}){
   const{sun,moon,rising}=chart;
   return(
     <div style={{height:"100%",background:P.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{fontFamily:SN,fontSize:8,letterSpacing:3,color:P.fn,textTransform:"uppercase",marginBottom:12}}>Your line this week</div>
+      <div style={{fontFamily:SN,fontSize:8,letterSpacing:3,color:P.fn,textTransform:"uppercase",marginBottom:12}}>Your Star Note</div>
       <div style={{width:"100%",maxWidth:300,aspectRatio:"9/16",background:"linear-gradient(160deg,#F5EDE0 0%,#F6EDD9 60%,#F5EBE5 100%)",border:"1px solid rgba(191,140,62,0.1)",borderRadius:16,overflow:"hidden",position:"relative",display:"flex",flexDirection:"column",justifyContent:"center",padding:"36px 22px",boxShadow:"0 8px 32px rgba(42,33,24,0.08)"}}>
         <div style={{position:"absolute",top:18,left:22,fontFamily:SN,fontSize:7,letterSpacing:4,color:P.fn,textTransform:"uppercase"}}>luminary</div>
         <div style={{position:"absolute",top:36,left:22,right:22,height:1,background:"linear-gradient(90deg,rgba(191,140,62,0.2),transparent)"}}/>
@@ -480,15 +487,23 @@ function ShareableScreen({reading,name,chart,onBack}){
 
 /* ═══ CHAT ═══ */
 function ChatScreen({chart,name,onBack,userKey}){
-  const[msgs,setMsgs]=useState([{role:"assistant",text:"Welcome, "+name+". I have your complete natal chart — "+chart.sun+" Sun, "+chart.moon+" Moon"+(chart.rising!=="Unknown"?", "+chart.rising+" Rising":"")+(chart.humanDesign?" — and your Human Design ("+chart.humanDesign.type+")":"")+". What would you like to explore?"}]);
+  const[msgs,setMsgs]=useState([{role:"assistant",text:"Welcome, "+name+". I'm Luminary — trained on the combined methods of the great schools of astrology: evolutionary, psychological, Hellenistic, and modern classical technique, plus complete Human Design mechanics. I'm reading your exact chart right now — "+chart.sun+" Sun, "+chart.moon+" Moon"+(chart.rising!=="Unknown"?", "+chart.rising+" Rising":"")+(chart.humanDesign?", "+chart.humanDesign.type+" ("+chart.humanDesign.profile+")":"")+" — not a generic horoscope. Ask me anything about your life, your timing, or your design."}]);
   const[inp,setInp]=useState("");const[ld,setLd]=useState(false);const ref=useRef(null);
-  useEffect(()=>{if(ref.current)ref.current.scrollTop=ref.current.scrollHeight;},[msgs]);
-  const send=async()=>{if(!inp.trim()||ld)return;const u=inp.trim();setInp("");setLd(true);
-    const upd=[...msgs,{role:"user",text:u}];setMsgs(upd);
+  const suggestions=[
+    "What should I focus on this week?",
+    "How do I make big decisions, based on my design?",
+    "What's my pattern in love?",
+    "When is my next power window?",
+    "What career am I built for?",
+  ];
+  const sendText=async(text)=>{if(!text.trim()||ld)return;setInp("");setLd(true);
+    const upd=[...msgs,{role:"user",text}];setMsgs(upd);
     try{const am=[{role:"user",content:"Chart: "+chart.promptText+"\nQuerent: "+name}];upd.forEach(m=>am.push({role:m.role==="user"?"user":"assistant",content:m.text}));
       const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:am,userName:name})});const d=await r.json();
       const nm2=[...upd,{role:"assistant",text:d.reply}];setMsgs(nm2);if(userKey)saveChatHist(userKey,nm2);
     }catch{setMsgs(p=>[...p,{role:"assistant",text:"Connection lost. Try again?"}]);}setLd(false);};
+  useEffect(()=>{if(ref.current)ref.current.scrollTop=ref.current.scrollHeight;},[msgs]);
+  const send=()=>sendText(inp.trim());
   return(
     <div style={{height:"100%",background:P.bg,display:"flex",flexDirection:"column"}}>
       <div style={{padding:"14px 18px",borderBottom:"1px solid "+P.bdr,display:"flex",alignItems:"center",gap:12}}>
@@ -502,6 +517,16 @@ function ChatScreen({chart,name,onBack,userKey}){
           </div>
         ))}
         {ld&&<div style={{textAlign:"left"}}><div style={{display:"inline-block",padding:"12px 16px",borderRadius:14,background:P.card,border:"1px solid "+P.bdr}}><Spinner size={24}/></div></div>}
+        {msgs.length===1&&!ld&&(
+          <div style={{marginTop:8}}>
+            <div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.fn,textTransform:"uppercase",marginBottom:8}}>try asking</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              {suggestions.map((q,i)=>(
+                <button key={i} onClick={()=>sendText(q)} style={{fontFamily:SN,fontSize:12,padding:"10px 14px",borderRadius:16,border:"1.5px solid rgba(191,140,62,0.25)",background:P.goldBg,color:P.ink,cursor:"pointer",textAlign:"left"}}>{q}</button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       <div style={{padding:"10px 18px 24px",borderTop:"1px solid "+P.bdr,display:"flex",gap:8}}>
         <input value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")send();}} placeholder="Ask about your chart..." style={{flex:1,padding:"12px 16px",borderRadius:20,border:"1px solid "+P.bdr,background:P.card,fontSize:14,fontFamily:SN,color:P.ink,outline:"none"}}/>
@@ -538,14 +563,14 @@ export default function Luminary(){
         const u=await post("/api/user",{action:"get",key:saved.key});
         if(!u.chart)throw new Error("no chart");
         setChart(u.chart);setReading(u.reading);setBca(u.birthchartAnalysis||null);
-        setBd({name:u.name,ig:u.ig});setAns(u.answers||null);setUkey(saved.key);
+        setBd({name:u.name,ig:u.ig,...(u.birth||{})});setAns(u.answers||null);setUkey(saved.key);
         setScr("reading");
         /* silent refresh: new week, new reading — chart + birth chart stay cached */
         if(u.answers){
           try{
             const fresh=await post("/api/horoscope",{chartText:u.chart.promptText,name:u.name,...u.answers});
             setReading(fresh);
-            saveReading({name:u.name,ig:u.ig,chart:u.chart,reading:fresh,answers:u.answers,birthchartAnalysis:u.birthchartAnalysis||null});
+            saveReading({name:u.name,ig:u.ig,birth:u.birth||null,chart:u.chart,reading:fresh,answers:u.answers,birthchartAnalysis:u.birthchartAnalysis||null});
           }catch{}
         }
       }catch{localStorage.removeItem("luminary_user");setScr("landing");}
@@ -563,14 +588,14 @@ export default function Luminary(){
     const k=(b.ig||b.name||"anon").toLowerCase().replace(/[@\s]+/g,"-").replace(/[^a-z0-9-]/g,"");
     setUkey(k);
     try{localStorage.setItem("luminary_user",JSON.stringify({key:k,name:b.name}));}catch{}
-    saveReading({name:b.name,ig:b.ig,chart:ch,reading:ho,answers:a,birthchartAnalysis:bc});
+    saveReading({name:b.name,ig:b.ig,birth:{date:b.date,time:b.time,city:b.city,lat:b.lat,lon:b.lon},chart:ch,reading:ho,answers:a,birthchartAnalysis:bc});
     setScr("reading");
   }catch(e){console.error(e);setErr(e.message);setScr("error");}};
 
   const reset=()=>{try{localStorage.removeItem("luminary_user");}catch{}
     setBd(null);setAns(null);setChart(null);setReading(null);setBca(null);setErr(null);setUkey(null);setScr("landing");};
 
-  const navItems=[{id:"landing",l:"Home"},{id:"reading",l:"Reading"},{id:"birthchart",l:"Birth Chart"},{id:"humandesign",l:"Design"},{id:"shareable",l:"Your Line"}];
+  const navItems=[{id:"landing",l:"Home"},{id:"reading",l:"Reading"},{id:"birthchart",l:"Birth Chart"},{id:"humandesign",l:"Design"},{id:"shareable",l:"Star Note"},{id:"chat",l:"✦ Ask"}];
   const navBtn=(id)=>({fontFamily:SN,fontSize:9,border:"none",padding:"5px 8px",borderRadius:5,cursor:"pointer",background:scr===id?P.warm:"transparent",color:scr===id?P.ink:P.fn});
   const navGo=(id)=>{
     if(id==="landing")setScr(chart?"reading":"landing");
@@ -578,6 +603,7 @@ export default function Luminary(){
     else if(id==="birthchart"&&chart)setScr("birthchart");
     else if(id==="humandesign"&&chart)setScr("humandesign");
     else if(id==="shareable"&&reading)setScr("shareable");
+    else if(id==="chat"&&chart)setScr("chat");
   };
 
   return(

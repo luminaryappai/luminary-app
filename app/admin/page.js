@@ -14,6 +14,7 @@ export default function Admin(){
     <button onClick={()=>setSel(null)} style={{background:"none",border:"none",color:P.gold,fontSize:13,cursor:"pointer",fontFamily:F.sans,marginBottom:16}}>← All Users</button>
     <h2 style={{fontFamily:F.serif,fontSize:24,color:P.ink,marginBottom:4}}>{sel.name}</h2>
     <p style={{fontFamily:F.sans,fontSize:12,color:P.light}}>{sel.ig?"@"+sel.ig:""} · {sel.chart?.sun} · {sel.chart?.moon} · {sel.chart?.rising}</p>
+    {sel.birth&&<p style={{fontFamily:F.sans,fontSize:12,color:P.mid,marginTop:4}}>Born {sel.birth.date}{sel.birth.time&&sel.birth.time!=="unknown"?" at "+sel.birth.time:" (time unknown)"} · {sel.birth.city}</p>}
     <p style={{fontFamily:F.sans,fontSize:11,color:P.gold,marginTop:4}}>Intensity: {sel.chart?.intensity}/10</p>
     {sel.chart?.humanDesign&&<p style={{fontFamily:F.sans,fontSize:11,color:P.mid,marginTop:4}}>HD: {sel.chart.humanDesign.type} · {sel.chart.humanDesign.authority} · {sel.chart.humanDesign.profile}</p>}
     {sel.answers&&<p style={{fontFamily:F.sans,fontSize:11,color:P.light,marginTop:8}}>Focus: {sel.answers.focus} · Energy: {sel.answers.energy} · Seeking: {sel.answers.seeking}</p>}

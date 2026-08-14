@@ -24,6 +24,7 @@ export default function Sys(){
       <button onClick={()=>setTab("roster")} style={{color:C.gold,background:"none",border:"none",cursor:"pointer",fontSize:12,marginBottom:12}}>← Roster</button>
       <p style={{fontSize:24,fontFamily:F.serif,marginBottom:4}}>{sel.name}</p>
       <p style={{fontSize:12,color:C.dim}}>{sel.ig?"@"+sel.ig:""} · {sel.chart?.sun} Sun · {sel.chart?.moon} Moon · {sel.chart?.rising} Rising</p>
+      {sel.birth&&<p style={{fontSize:11,color:C.mid,marginTop:4}}>Born {sel.birth.date}{sel.birth.time&&sel.birth.time!=="unknown"?" at "+sel.birth.time:" (time unknown)"} · {sel.birth.city} ({sel.birth.lat}, {sel.birth.lon})</p>}
       <p style={{fontSize:12,color:C.gold,marginTop:4}}>Intensity: {sel.chart?.intensity}/10</p>
       {sel.chart?.humanDesign&&<p style={{fontSize:11,color:C.violet,marginTop:4}}>HD: {sel.chart.humanDesign.type} · {sel.chart.humanDesign.authority} · Profile {sel.chart.humanDesign.profile} · {sel.chart.humanDesign.strategy}</p>}
       {sel.answers&&<p style={{fontSize:11,color:C.mid,marginTop:8}}>Focus: {sel.answers.focus} · Energy: {sel.answers.energy} · Seeking: {sel.answers.seeking}</p>}

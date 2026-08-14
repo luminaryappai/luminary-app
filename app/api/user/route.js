@@ -22,12 +22,12 @@ export async function POST(req){
     const fs=db();
     const users=fs.collection("users");
     if(action==="save"){
-      const{name,ig,chart,reading,answers,chatHistory,birthchartAnalysis}=body;
+      const{name,ig,birth,chart,reading,answers,chatHistory,birthchartAnalysis}=body;
       const key=(ig||name||"anon").toLowerCase().replace(/[@\s]+/g,"-").replace(/[^a-z0-9-]/g,"");
       const ref=users.doc(key);
       const snap=await ref.get();
       const existing=snap.exists?snap.data():{};
-      await ref.set({...existing,name,ig:ig||null,chart,answers,reading:reading||existing.reading||null,birthchartAnalysis:birthchartAnalysis||existing.birthchartAnalysis||null,chatHistory:chatHistory||existing.chatHistory||[],updatedAt:new Date().toISOString(),createdAt:existing.createdAt||new Date().toISOString()},{merge:true});
+      await ref.set({...existing,name,ig:ig||null,birth:birth||existing.birth||null,chart,answers,reading:reading||existing.reading||null,birthchartAnalysis:birthchartAnalysis||existing.birthchartAnalysis||null,chatHistory:chatHistory||existing.chatHistory||[],updatedAt:new Date().toISOString(),createdAt:existing.createdAt||new Date().toISOString()},{merge:true});
       return NextResponse.json({success:true,key});
     }
     if(action==="list"){
