@@ -105,6 +105,12 @@ function findDesignTime(birthTime){
   return Astronomy.MakeTime(new Date((lo+hi)/2));
 }
 
+function meanLunarNode(time){
+  /* Mean node: 125.04452 - 0.05295376 * days since J2000. Matches Mat's natal 24° Libra NN to <1°. */
+  const d=(time.date.getTime()-Date.UTC(2000,0,1,12,0,0))/86400000;
+  return(((125.04452-0.05295376*d)%360)+360)%360;
+}
+
 function calcHumanDesign(birthTime){
   const HD_BODIES=["Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"];
   const designTime=findDesignTime(birthTime);
@@ -113,17 +119,16 @@ function calcHumanDesign(birthTime){
   for(const b of HD_BODIES){
     const pl=getPlanetLon(b,birthTime);const pg=lonToGate(pl);pGates.push(pg.gate);
     if(b==="Sun")pSunLine=pg.line;
-    /* Earth = Sun + 180° */
     if(b==="Sun"){const eg=lonToGate((pl+180)%360);pGates.push(eg.gate);}
     const dl=getPlanetLon(b,designTime);const dg=lonToGate(dl);dGates.push(dg.gate);
     if(b==="Sun")dSunLine=dg.line;
     if(b==="Sun"){const eg=lonToGate((dl+180)%360);dGates.push(eg.gate);}
   }
-  /* North Node */
-  try{
-    const nn=Astronomy.SearchMoonNode(birthTime);
-    /* approximate node longitude via moon position at node crossing — simplified: skip nodes if unavailable */
-  }catch{}
+  /* North + South Nodes — full 13 activations per side (missing these caused the Projector/MG bug) */
+  const pN=meanLunarNode(birthTime);
+  pGates.push(lonToGate(pN).gate);pGates.push(lonToGate((pN+180)%360).gate);
+  const dN=meanLunarNode(designTime);
+  dGates.push(lonToGate(dN).gate);dGates.push(lonToGate((dN+180)%360).gate);
   const allGates=[...new Set([...pGates,...dGates])];
   /* Defined channels */
   const defChannels=CHANNELS.filter(([a,b])=>allGates.includes(a)&&allGates.includes(b));

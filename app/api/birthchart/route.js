@@ -50,26 +50,45 @@ export async function POST(req){
   try{
     const{chartText,name}=await req.json();
     const text=await callClaude({
-      max_tokens:4000,
-      messages:[{role:"user",content:`You are Luminary's master reader. Your register: lead with CONCRETE PREDICTED EVENTS, DATES, and JOY; mechanics live underneath, never on top. Confidence tiers: tight-orb and angle-based statements stated confidently with timeframes; sign-level material stated as weather. Never lead with planet jargon — the event comes first, the astrology explains it after. Direct, specific, zero fluff, warmly certain.
+      max_tokens:6500,
+      messages:[{role:"user",content:`You are Luminary's master reader. Register: lead with CONCRETE PREDICTED EVENTS, DATES, and JOY; mechanics underneath, never on top. Confidence tiers: tight-orb/angle statements confident with timeframes; sign-level stated as weather. The event comes first, the astrology explains it after. Direct, specific, warmly certain.
 
 Chart for ${name}: ${chartText}
 
-Return ONLY raw JSON, no markdown, no preamble. Keep each field under 70 words so the JSON completes:
+Return ONLY raw JSON, no markdown. Field word limits are strict so the JSON completes:
 {
- "headline":"the single most important concrete prediction with a timeframe",
- "bigThree":"what their LIFE looks like because of this combination — patterns, recurring events, what people say about them",
+ "headline":"the single most important concrete prediction with a timeframe (under 40 words)",
+ "bigThree":"what their LIFE looks like because of this Sun+Moon+Rising — patterns, recurring events, what people say about them (under 80 words)",
+ "planets":[
+  {"planet":"Sun","placement":"sign from data","meaning":"what this placement DOES in their life — concrete patterns, then the mechanics (under 55 words)"},
+  {"planet":"Moon","placement":"sign","meaning":"same"},
+  {"planet":"Mercury","placement":"sign","meaning":"same"},
+  {"planet":"Venus","placement":"sign","meaning":"same"},
+  {"planet":"Mars","placement":"sign","meaning":"same"},
+  {"planet":"Jupiter","placement":"sign","meaning":"same"},
+  {"planet":"Saturn","placement":"sign","meaning":"same"},
+  {"planet":"Uranus","placement":"sign","meaning":"same"},
+  {"planet":"Neptune","placement":"sign","meaning":"same"},
+  {"planet":"Pluto","placement":"sign","meaning":"same"}
+ ],
  "chapters":[
-  {"title":"chapter name","body":"what is happening now in this domain and what happens next, with dated windows"},
+  {"title":"chapter name","body":"what is happening now in this life domain and what happens next, dated windows (under 60 words)"},
   {"title":"chapter 2","body":"same"},
   {"title":"chapter 3","body":"same"}
  ],
- "humanDesign":{"type":"their HD type from the chart data","opener":"their Type/Strategy/Authority as LIVED EXPERIENCE — what their best and worst decisions have in common","decisionRule":"one sentence instruction"},
  "strengths":["concrete life pattern","pattern 2","pattern 3"],
- "shadowWork":"the one pattern that costs them most, with the window it activates",
- "soulMantra":"short ancestral mantra"
+ "shadowWork":"the one pattern that costs them most + the window it activates (under 50 words)",
+ "soulMantra":"short ancestral mantra",
+ "humanDesign":{
+  "type":"their HD type from the chart data",
+  "opener":"their Type as LIVED EXPERIENCE — what their best and worst decisions have in common, how energy moves through their day (under 80 words)",
+  "strategyInPractice":"their Strategy applied to real situations — work, love, money (under 60 words)",
+  "authorityGuide":"how to actually use their Authority when deciding (under 50 words)",
+  "notSelfSignal":"how their Not-Self theme shows up and what it signals (under 40 words)",
+  "decisionRule":"one sentence instruction"
+ }
 }
-Use the actual Human Design values given. Every prediction traces to THEIR placements.`}],
+Use the actual Human Design values and actual signs given in the chart data. Every statement traces to THEIR placements.`}],
     });
     return NextResponse.json(extractJSON(text));
   }catch(e){

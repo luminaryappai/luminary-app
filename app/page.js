@@ -144,7 +144,19 @@ function Questions({onSubmit,name}){
   );
 }
 
-/* ═══ READING — bigger header font (38px per Mat 3/28) ═══ */
+/* ═══ READING — 38px header, Your Line card with signature orrery ═══ */
+function MiniOrrery({size=44,opacity=0.35}){
+  const s=size/44;
+  return(
+    <div style={{position:"absolute",top:14,right:14,width:size,height:size,opacity,pointerEvents:"none"}}>
+      <div style={{position:"absolute",width:16*s,height:16*s,top:14*s,left:14*s,borderRadius:"50%",borderWidth:Math.max(1,2*s),borderStyle:"solid",borderColor:"rgba(196,131,106,0.6)",animation:"orb 7s linear infinite"}}><div style={{width:4*s,height:4*s,borderRadius:"50%",background:P.terra,position:"absolute",top:-2*s,left:"50%",marginLeft:-2*s}}/></div>
+      <div style={{position:"absolute",width:30*s,height:30*s,top:7*s,left:7*s,borderRadius:"50%",borderWidth:Math.max(1,1.5*s),borderStyle:"solid",borderColor:"rgba(122,148,104,0.5)",animation:"orb 12s linear infinite reverse"}}><div style={{width:3.5*s,height:3.5*s,borderRadius:"50%",background:P.sage,position:"absolute",top:-1.75*s,left:"50%",marginLeft:-1.75*s}}/></div>
+      <div style={{position:"absolute",width:42*s,height:42*s,top:1*s,left:1*s,borderRadius:"50%",borderWidth:1,borderStyle:"solid",borderColor:"rgba(141,128,184,0.4)",animation:"orb 18s linear infinite"}}><div style={{width:2.5*s,height:2.5*s,borderRadius:"50%",background:P.violet,position:"absolute",top:-1.25*s,left:"50%",marginLeft:-1.25*s}}/></div>
+      <div style={{width:6*s,height:6*s,borderRadius:"50%",background:"radial-gradient(circle,#E8C98A,#BF8C3E)",position:"absolute",top:19*s,left:19*s,boxShadow:"0 0 10px rgba(218,176,98,0.5)"}}/>
+    </div>
+  );
+}
+
 function ReadingScreen({chart,reading,name,onChat,onReset,onShareable}){
   const[tab,setTab]=useState("weekly");
   const[openCard,setOpenCard]=useState(0);
@@ -166,14 +178,12 @@ function ReadingScreen({chart,reading,name,onChat,onReset,onShareable}){
   return(
     <div style={{minHeight:"100%",background:P.bg,padding:"28px 18px 90px"}}>
       <style>{V6CSS}</style>
-      {/* Header — LARGER FONT */}
       <div style={{textAlign:"center",marginBottom:20}}>
         <div style={{fontFamily:SN,fontSize:8,letterSpacing:4,color:P.gold,textTransform:"uppercase",marginBottom:10,opacity:0.5}}>your reading</div>
         <h2 style={{fontFamily:SR,fontSize:38,fontWeight:300,color:P.ink,margin:"0 0 4px",lineHeight:1.05}}>{name}</h2>
         <div style={{fontFamily:SR,fontSize:14,color:P.lt,fontStyle:"italic"}}>{ZG[sun]||""} {sun} · {ZG[moon]||""} {moon}{rising!=="Unknown"?" · "+(ZG[rising]||"")+" "+rising:""}</div>
-        <button onClick={onReset} style={{fontFamily:SN,fontSize:8,color:P.gold,background:"transparent",border:"1px solid rgba(191,140,62,0.15)",padding:"3px 8px",borderRadius:10,cursor:"pointer",marginTop:8,letterSpacing:1,textTransform:"uppercase"}}>Edit info</button>
+        <button onClick={onReset} style={{fontFamily:SN,fontSize:8,color:P.gold,background:"transparent",border:"1px solid rgba(191,140,62,0.15)",padding:"3px 8px",borderRadius:10,cursor:"pointer",marginTop:8,letterSpacing:1,textTransform:"uppercase"}}>Log out</button>
       </div>
-      {/* Big Three flip */}
       <div style={{marginBottom:20,position:"relative"}}>
         <div style={{display:openB3===-1?"flex":"none",gap:8,justifyContent:"center"}}>
           {b3.map((b,i)=>(
@@ -200,7 +210,6 @@ function ReadingScreen({chart,reading,name,onChat,onReset,onShareable}){
           </div>
         )}
       </div>
-      {/* Intensity */}
       <div style={{background:P.card,border:"1px solid "+P.bdr,borderRadius:12,padding:"13px 16px",marginBottom:20,boxShadow:SH}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
           <span style={{fontFamily:SN,fontSize:7,letterSpacing:2.5,color:P.fn,textTransform:"uppercase"}}>This week's intensity</span>
@@ -209,7 +218,6 @@ function ReadingScreen({chart,reading,name,onChat,onReset,onShareable}){
         <div style={{display:"flex",gap:2.5}}>{bars}</div>
         <div style={{fontFamily:SN,fontSize:8,color:P.lt,marginTop:5,textAlign:"center",fontStyle:"italic",minHeight:14}}>{intArea}</div>
       </div>
-      {/* Tabs */}
       <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:16}}>
         <button onClick={()=>{setTab("weekly");setOpenCard(0);}} style={tabS("weekly")}>Weekly</button>
         <button onClick={()=>{setTab("monthly");setOpenCard(0);}} style={tabS("monthly")}>Monthly</button>
@@ -257,11 +265,12 @@ function ReadingScreen({chart,reading,name,onChat,onReset,onShareable}){
       ))}
       <div style={{display:"flex",alignItems:"center",gap:10,margin:"20px 0 16px"}}><div style={{flex:1,height:1,background:"rgba(42,33,24,0.05)"}}/><span style={{fontFamily:SN,fontSize:7,letterSpacing:3,color:P.fn,textTransform:"uppercase"}}>your line</span><div style={{flex:1,height:1,background:"rgba(42,33,24,0.05)"}}/></div>
       {reading.line&&(
-        <div onClick={onShareable} style={{background:P.linen,border:"1px solid rgba(191,140,62,0.1)",borderRadius:14,padding:"24px 20px",position:"relative",overflow:"hidden",cursor:"pointer",boxShadow:SH3}}>
-          <div style={{position:"absolute",top:-20,right:-10,width:120,height:120,background:"radial-gradient(circle,rgba(191,140,62,0.08) 0%,transparent 55%)"}}/>
+        <div onClick={onShareable} style={{background:"linear-gradient(135deg,#F5EDE0 0%,#F6EDD9 55%,#F5EBE5 100%)",border:"1px solid rgba(191,140,62,0.14)",borderRadius:14,padding:"26px 20px",position:"relative",overflow:"hidden",cursor:"pointer",boxShadow:SH3}}>
+        <div style={{position:"absolute",top:-30,right:-20,width:160,height:160,background:"radial-gradient(circle,rgba(191,140,62,0.1) 0%,transparent 55%)"}}/>
+          <MiniOrrery size={52} opacity={0.4}/>
           <div style={{fontFamily:SN,fontSize:6,letterSpacing:3,color:P.lt,textTransform:"uppercase",marginBottom:10}}>luminary · your line</div>
-          <blockquote style={{fontFamily:SR,fontSize:16,fontWeight:300,color:P.ink,lineHeight:1.58,margin:0,fontStyle:"italic",position:"relative",zIndex:1}}>"{reading.line}"</blockquote>
-          <div style={{marginTop:12,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
+          <blockquote style={{fontFamily:SR,fontSize:17,fontWeight:300,color:P.ink,lineHeight:1.58,margin:0,fontStyle:"italic",position:"relative",zIndex:1,maxWidth:"85%"}}>"{reading.line}"</blockquote>
+          <div style={{marginTop:14,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
             <div>
               <div style={{fontFamily:SR,fontSize:12,color:P.gold}}>{name}</div>
               <div style={{fontFamily:SN,fontSize:7,color:P.lt,letterSpacing:1.5,marginTop:1}}>{ZG[sun]||""} {sun} · {ZG[moon]||""} {moon}{rising!=="Unknown"?" · "+(ZG[rising]||"")+" "+rising:""}</div>
@@ -286,68 +295,156 @@ function ReadingScreen({chart,reading,name,onChat,onReset,onShareable}){
   );
 }
 
-/* ═══ BIRTH CHART — Grim register + Human Design display ═══ */
+/* ═══ BIRTH CHART — full natal table, expandable cards, expand/collapse all ═══ */
 function BirthChartScreen({chart,analysis,name,onChat}){
-  const hd=chart.humanDesign;
+  const[open,setOpen]=useState({});
+  const planetOrder=["Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"];
+  const glyph={Sun:"☉",Moon:"☽",Mercury:"☿",Venus:"♀",Mars:"♂",Jupiter:"♃",Saturn:"♄",Uranus:"♅",Neptune:"♆",Pluto:"♇"};
+  const meanings={};
+  if(analysis&&analysis.planets)analysis.planets.forEach(p=>{meanings[p.planet]=p;});
+  const allOpen=()=>{const o={};planetOrder.forEach(p=>o[p]=true);setOpen(o);};
+  const allClosed=()=>setOpen({});
+  const deg=(d)=>{const inSign=d%30;const wd=Math.floor(inSign);const wm=Math.round((inSign-wd)*60);return wd+"°"+String(wm).padStart(2,"0")+"'";};
   return(
     <div style={{minHeight:"100%",background:P.bg,padding:"28px 18px 100px"}}>
+      <style>{V6CSS}</style>
       <div style={{textAlign:"center",marginBottom:20}}>
         <div style={{fontFamily:SN,fontSize:8,letterSpacing:4,color:P.gold,textTransform:"uppercase",marginBottom:10,opacity:0.5}}>birth chart</div>
         <h2 style={{fontFamily:SR,fontSize:38,fontWeight:300,color:P.ink,margin:"0 0 4px",lineHeight:1.05}}>{name}</h2>
         <div style={{fontFamily:SR,fontSize:14,color:P.lt,fontStyle:"italic"}}>{ZG[chart.sun]||""} {chart.sun} · {ZG[chart.moon]||""} {chart.moon}{chart.rising!=="Unknown"?" · "+(ZG[chart.rising]||"")+" "+chart.rising:""}</div>
       </div>
-      {analysis?(
+      {!analysis&&(
+        <div style={{textAlign:"center",padding:40}}><Spinner size={48}/><p style={{fontFamily:SN,fontSize:12,color:P.lt,marginTop:12}}>Reading the architecture of your life...</p></div>
+      )}
+      {analysis&&analysis.headline&&(
+        <div style={{background:"linear-gradient(135deg,#F5EDE0,#F6EDD9)",border:"1px solid rgba(191,140,62,0.12)",borderRadius:14,padding:"22px 20px",marginBottom:14,position:"relative",overflow:"hidden",boxShadow:SH3}}>
+          <MiniOrrery size={48} opacity={0.3}/>
+          <div style={{fontFamily:SN,fontSize:6,letterSpacing:3,color:P.lt,textTransform:"uppercase",marginBottom:8}}>the headline</div>
+          <blockquote style={{fontFamily:SR,fontSize:17,fontWeight:300,color:P.ink,lineHeight:1.55,margin:0,fontStyle:"italic",maxWidth:"88%"}}>{analysis.headline}</blockquote>
+        </div>
+      )}
+      {analysis&&analysis.bigThree&&<div style={{background:P.card,border:"1px solid "+P.bdr,borderRadius:14,padding:20,marginBottom:16,boxShadow:SH}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.terra,textTransform:"uppercase",fontWeight:500,marginBottom:8}}>Who You Are</div><p style={{fontFamily:SR,fontSize:14,color:P.mid,lineHeight:1.7,fontStyle:"italic"}}>{analysis.bigThree}</p></div>}
+
+      {/* Natal table with expandable cards */}
+      {analysis&&(
         <>
-          {analysis.headline&&(
-            <div style={{background:P.linen,border:"1px solid rgba(191,140,62,0.1)",borderRadius:14,padding:"22px 20px",marginBottom:14,position:"relative",overflow:"hidden",boxShadow:SH3}}>
-              <div style={{position:"absolute",top:-20,right:-10,width:120,height:120,background:"radial-gradient(circle,rgba(191,140,62,0.08) 0%,transparent 55%)"}}/>
-              <div style={{fontFamily:SN,fontSize:6,letterSpacing:3,color:P.lt,textTransform:"uppercase",marginBottom:8}}>the headline</div>
-              <blockquote style={{fontFamily:SR,fontSize:17,fontWeight:300,color:P.ink,lineHeight:1.55,margin:0,fontStyle:"italic",position:"relative",zIndex:1}}>{analysis.headline}</blockquote>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"4px 0 10px"}}>
+            <span style={{fontFamily:SN,fontSize:8,letterSpacing:3,color:P.fn,textTransform:"uppercase"}}>Your placements</span>
+            <div style={{display:"flex",gap:6}}>
+              <button onClick={allOpen} style={{fontFamily:SN,fontSize:8,letterSpacing:1,color:P.gold,background:P.goldBg,border:"1px solid rgba(191,140,62,0.15)",padding:"4px 10px",borderRadius:10,cursor:"pointer",textTransform:"uppercase"}}>Expand all</button>
+              <button onClick={allClosed} style={{fontFamily:SN,fontSize:8,letterSpacing:1,color:P.lt,background:"transparent",border:"1px solid rgba(42,33,24,0.1)",padding:"4px 10px",borderRadius:10,cursor:"pointer",textTransform:"uppercase"}}>Collapse all</button>
+            </div>
+          </div>
+          {chart.rising!=="Unknown"&&chart.natal&&chart.natal.ascendant&&(
+            <div style={{background:P.sageBg,border:"1px solid rgba(122,148,104,0.12)",borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontFamily:SR,background:"#FFF",color:P.sage}}>↑</span>
+                <span style={{fontFamily:SR,fontSize:15,color:P.ink}}>Ascendant</span>
+              </div>
+              <span style={{fontFamily:SR,fontSize:13,color:P.mid,fontStyle:"italic"}}>{deg(chart.natal.ascendant.deg)} {chart.natal.ascendant.sign}</span>
             </div>
           )}
-          {analysis.bigThree&&<div style={{background:P.card,border:"1px solid "+P.bdr,borderRadius:14,padding:20,marginBottom:12,boxShadow:SH}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.terra,textTransform:"uppercase",fontWeight:500,marginBottom:8}}>Who You Are</div><p style={{fontFamily:SR,fontSize:14,color:P.mid,lineHeight:1.7,fontStyle:"italic"}}>{analysis.bigThree}</p></div>}
-          {analysis.chapters&&analysis.chapters.map((ch,i)=>{
+          {planetOrder.map((pl,i)=>{
             const cc=CC[i%CC.length];
+            const pd=chart.natal&&chart.natal.planets?chart.natal.planets[pl]:null;
+            const m=meanings[pl];
+            const isOpen=!!open[pl];
             return(
-              <div key={i} style={{background:P.card,border:"1px solid "+P.bdr,borderRadius:14,marginBottom:10,overflow:"hidden",boxShadow:SH}}>
+              <div key={pl} style={{background:P.card,border:"1px solid "+P.bdr,borderRadius:12,marginBottom:8,overflow:"hidden",boxShadow:isOpen?SH3:SH,transition:"box-shadow 0.3s"}}>
                 <div style={{height:2,opacity:0.5,background:"linear-gradient(90deg,"+cc.c+"80,transparent 75%)"}}/>
-                <div style={{padding:"14px 16px"}}>
-                  <div style={{fontFamily:SR,fontSize:16,color:P.ink,marginBottom:6}}>{ch.title}</div>
-                  <p style={{fontFamily:SR,fontSize:13,color:P.mid,lineHeight:1.68,fontStyle:"italic"}}>{ch.body}</p>
+                <div onClick={()=>setOpen(o=>({...o,[pl]:!o[pl]}))} style={{padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontFamily:SR,background:cc.bg,color:cc.c}}>{glyph[pl]}</span>
+                    <span style={{fontFamily:SR,fontSize:15,color:P.ink}}>{pl}</span>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    {pd&&<span style={{fontFamily:SR,fontSize:12,color:P.lt,fontStyle:"italic"}}>{deg(pd.deg)} {pd.sign}</span>}
+                    <span style={{fontFamily:SN,fontSize:9,color:P.fn,transition:"transform 0.25s",transform:isOpen?"rotate(180deg)":"none"}}>▾</span>
+                  </div>
                 </div>
+                {isOpen&&m&&(
+                  <div style={{padding:"0 16px 14px"}}>
+                    <p style={{fontFamily:SR,fontSize:13,lineHeight:1.7,color:P.mid,fontStyle:"italic",margin:0}}>{m.meaning}</p>
+                  </div>
+                )}
               </div>
             );
           })}
-          {/* Human Design block */}
-          {hd&&(
-            <div style={{background:P.violetBg,border:"1px solid rgba(141,128,184,0.15)",borderRadius:14,padding:"18px 20px",marginTop:16,marginBottom:12}}>
-              <div style={{fontFamily:SN,fontSize:8,letterSpacing:3,color:P.violet,textTransform:"uppercase",fontWeight:500,marginBottom:10}}>your human design</div>
-              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
-                {[["Type",hd.type],["Authority",hd.authority],["Profile",hd.profile],["Strategy",hd.strategy]].map(([l,v],i)=>(
-                  <div key={i} style={{background:"rgba(255,255,255,0.6)",borderRadius:8,padding:"6px 12px"}}>
-                    <div style={{fontFamily:SN,fontSize:6,letterSpacing:2,color:P.lt,textTransform:"uppercase"}}>{l}</div>
-                    <div style={{fontFamily:SR,fontSize:13,color:P.ink}}>{v}</div>
+          {/* Chapters */}
+          {analysis.chapters&&(
+            <>
+              <div style={{display:"flex",alignItems:"center",gap:10,margin:"20px 0 12px"}}><div style={{flex:1,height:1,background:"rgba(42,33,24,0.05)"}}/><span style={{fontFamily:SN,fontSize:7,letterSpacing:3,color:P.fn,textTransform:"uppercase"}}>current chapters</span><div style={{flex:1,height:1,background:"rgba(42,33,24,0.05)"}}/></div>
+              {analysis.chapters.map((ch,i)=>{
+                const cc=CC[i%CC.length];
+                return(
+                  <div key={i} style={{background:P.card,border:"1px solid "+P.bdr,borderRadius:14,marginBottom:10,overflow:"hidden",boxShadow:SH}}>
+                    <div style={{height:2,opacity:0.5,background:"linear-gradient(90deg,"+cc.c+"80,transparent 75%)"}}/>
+                    <div style={{padding:"14px 16px"}}>
+                      <div style={{fontFamily:SR,fontSize:16,color:P.ink,marginBottom:6}}>{ch.title}</div>
+                      <p style={{fontFamily:SR,fontSize:13,color:P.mid,lineHeight:1.68,fontStyle:"italic"}}>{ch.body}</p>
+                    </div>
                   </div>
-                ))}
-              </div>
-              {analysis.humanDesign&&analysis.humanDesign.opener&&<p style={{fontFamily:SR,fontSize:13,color:P.mid,lineHeight:1.68,fontStyle:"italic",marginBottom:10}}>{analysis.humanDesign.opener}</p>}
-              {analysis.humanDesign&&analysis.humanDesign.decisionRule&&(
-                <div style={{background:"rgba(255,255,255,0.6)",borderRadius:10,padding:"12px 14px"}}>
-                  <div style={{fontFamily:SN,fontSize:6,letterSpacing:2,color:P.violet,textTransform:"uppercase",marginBottom:4}}>your decision rule</div>
-                  <div style={{fontFamily:SR,fontSize:14,color:P.ink,fontStyle:"italic"}}>{analysis.humanDesign.decisionRule}</div>
-                </div>
-              )}
-            </div>
+                );
+              })}
+            </>
           )}
           {analysis.strengths&&<div style={{background:P.card,border:"1px solid "+P.bdr,borderRadius:14,padding:20,marginBottom:12,boxShadow:SH}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.gold,textTransform:"uppercase",fontWeight:500,marginBottom:8}}>Strengths</div>{analysis.strengths.map((s,i)=><p key={i} style={{fontFamily:SR,fontSize:13,color:P.mid,lineHeight:1.6,fontStyle:"italic",marginBottom:4}}>✦ {s}</p>)}</div>}
           {analysis.shadowWork&&<div style={{background:P.terraBg,border:"1px solid rgba(196,131,106,0.1)",borderRadius:14,padding:"16px 20px",marginBottom:12}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.terra,textTransform:"uppercase",fontWeight:500,marginBottom:6}}>Shadow Work</div><p style={{fontFamily:SR,fontSize:13,color:P.ink,lineHeight:1.6,fontStyle:"italic"}}>{analysis.shadowWork}</p></div>}
           {analysis.soulMantra&&<div style={{background:P.goldBg,border:"1px solid rgba(191,140,62,0.1)",borderRadius:14,padding:"18px 20px",marginTop:16,textAlign:"center"}}><div style={{fontFamily:SN,fontSize:7,letterSpacing:3,color:P.gold,textTransform:"uppercase",marginBottom:6}}>soul mantra</div><p style={{fontFamily:SR,fontSize:16,color:P.ink,fontStyle:"italic",lineHeight:1.5,fontWeight:300}}>{analysis.soulMantra}</p></div>}
         </>
-      ):(
-        <div style={{textAlign:"center",padding:40}}><Spinner size={48}/><p style={{fontFamily:SN,fontSize:12,color:P.lt,marginTop:12}}>Reading the architecture of your life...</p></div>
       )}
       <button onClick={onChat} style={{position:"fixed",bottom:20,right:20,zIndex:100,fontFamily:SN,fontSize:10,fontWeight:500,letterSpacing:0.8,color:"#FAF6F0",background:P.ink,border:"none",padding:"9px 18px",borderRadius:20,cursor:"pointer",boxShadow:"0 3px 16px rgba(42,33,24,0.18)",display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12,opacity:0.7}}>✦</span> Ask Luminary</button>
+    </div>
+  );
+}
+
+/* ═══ HUMAN DESIGN — its own tab ═══ */
+function HDScreen({chart,analysis,name,onChat}){
+  const hd=chart.humanDesign;
+  const ai=analysis&&analysis.humanDesign?analysis.humanDesign:null;
+  return(
+    <div style={{minHeight:"100%",background:P.bg,padding:"28px 18px 100px"}}>
       <style>{V6CSS}</style>
+      <div style={{textAlign:"center",marginBottom:20}}>
+        <div style={{fontFamily:SN,fontSize:8,letterSpacing:4,color:P.violet,textTransform:"uppercase",marginBottom:10,opacity:0.7}}>human design</div>
+        <h2 style={{fontFamily:SR,fontSize:38,fontWeight:300,color:P.ink,margin:"0 0 4px",lineHeight:1.05}}>{name}</h2>
+        {hd&&<div style={{fontFamily:SR,fontSize:15,color:P.violet,fontStyle:"italic"}}>{hd.type} · {hd.profile}</div>}
+      </div>
+      {!hd&&<p style={{fontFamily:SN,fontSize:12,color:P.lt,textAlign:"center"}}>Human Design requires a birth time. Edit your info to add one.</p>}
+      {hd&&(
+        <>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
+            {[["Type",hd.type],["Profile",hd.profile],["Authority",hd.authority],["Strategy",hd.strategy]].map(([l,v],i)=>(
+              <div key={i} style={{background:P.violetBg,border:"1px solid rgba(141,128,184,0.15)",borderRadius:12,padding:"14px 14px"}}>
+                <div style={{fontFamily:SN,fontSize:7,letterSpacing:2,color:P.violet,textTransform:"uppercase",marginBottom:4}}>{l}</div>
+                <div style={{fontFamily:SR,fontSize:16,color:P.ink}}>{v}</div>
+              </div>
+            ))}
+          </div>
+          {ai&&ai.opener&&<div style={{background:P.card,border:"1px solid "+P.bdr,borderRadius:14,padding:20,marginBottom:12,boxShadow:SH}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.violet,textTransform:"uppercase",fontWeight:500,marginBottom:8}}>How You're Built</div><p style={{fontFamily:SR,fontSize:14,color:P.mid,lineHeight:1.7,fontStyle:"italic"}}>{ai.opener}</p></div>}
+          {ai&&ai.strategyInPractice&&<div style={{background:P.card,border:"1px solid "+P.bdr,borderRadius:14,padding:20,marginBottom:12,boxShadow:SH}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.sage,textTransform:"uppercase",fontWeight:500,marginBottom:8}}>Your Strategy in Practice</div><p style={{fontFamily:SR,fontSize:13,color:P.mid,lineHeight:1.68,fontStyle:"italic"}}>{ai.strategyInPractice}</p></div>}
+          {ai&&ai.authorityGuide&&<div style={{background:P.card,border:"1px solid "+P.bdr,borderRadius:14,padding:20,marginBottom:12,boxShadow:SH}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.gold,textTransform:"uppercase",fontWeight:500,marginBottom:8}}>Making Decisions</div><p style={{fontFamily:SR,fontSize:13,color:P.mid,lineHeight:1.68,fontStyle:"italic"}}>{ai.authorityGuide}</p></div>}
+          {ai&&ai.notSelfSignal&&<div style={{background:P.terraBg,border:"1px solid rgba(196,131,106,0.1)",borderRadius:14,padding:"16px 20px",marginBottom:12}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.terra,textTransform:"uppercase",fontWeight:500,marginBottom:6}}>Your Warning Light: {hd.notSelf}</div><p style={{fontFamily:SR,fontSize:13,color:P.ink,lineHeight:1.6,fontStyle:"italic"}}>{ai.notSelfSignal}</p></div>}
+          <div style={{background:P.card,border:"1px solid "+P.bdr,borderRadius:14,padding:20,marginBottom:12,boxShadow:SH}}>
+            <div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.violet,textTransform:"uppercase",fontWeight:500,marginBottom:10}}>Defined Centers ({hd.definedCenters?hd.definedCenters.length:0}/9)</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+              {["Head","Ajna","Throat","G","Heart","Sacral","SolarPlexus","Spleen","Root"].map(c=>{
+                const on=hd.definedCenters&&hd.definedCenters.includes(c);
+                return <span key={c} style={{fontFamily:SN,fontSize:10,padding:"5px 12px",borderRadius:12,background:on?P.violetBg:"transparent",color:on?P.violet:P.fn,border:"1px solid "+(on?"rgba(141,128,184,0.3)":"rgba(42,33,24,0.08)")}}>{c==="SolarPlexus"?"Solar Plexus":c==="G"?"G Center":c}</span>;
+              })}
+            </div>
+            {hd.definedChannels&&hd.definedChannels.length>0&&<p style={{fontFamily:SN,fontSize:10,color:P.lt,marginTop:10}}>Channels: {hd.definedChannels.join(" · ")}</p>}
+          </div>
+          {ai&&ai.decisionRule&&(
+            <div style={{background:"linear-gradient(135deg,#ECE8F3,#F6EDD9)",border:"1px solid rgba(141,128,184,0.15)",borderRadius:14,padding:"18px 20px",textAlign:"center",position:"relative",overflow:"hidden"}}>
+              <MiniOrrery size={40} opacity={0.25}/>
+              <div style={{fontFamily:SN,fontSize:7,letterSpacing:3,color:P.violet,textTransform:"uppercase",marginBottom:6}}>your decision rule</div>
+              <p style={{fontFamily:SR,fontSize:16,color:P.ink,fontStyle:"italic",lineHeight:1.5,fontWeight:300}}>{ai.decisionRule}</p>
+            </div>
+          )}
+        </>
+      )}
+      <button onClick={onChat} style={{position:"fixed",bottom:20,right:20,zIndex:100,fontFamily:SN,fontSize:10,fontWeight:500,letterSpacing:0.8,color:"#FAF6F0",background:P.ink,border:"none",padding:"9px 18px",borderRadius:20,cursor:"pointer",boxShadow:"0 3px 16px rgba(42,33,24,0.18)",display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12,opacity:0.7}}>✦</span> Ask Luminary</button>
     </div>
   );
 }
@@ -358,15 +455,10 @@ function ShareableScreen({reading,name,chart,onBack}){
   return(
     <div style={{height:"100%",background:P.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{fontFamily:SN,fontSize:8,letterSpacing:3,color:P.fn,textTransform:"uppercase",marginBottom:12}}>Your line this week</div>
-      <div style={{width:"100%",maxWidth:300,aspectRatio:"9/16",background:P.linen,border:"1px solid rgba(191,140,62,0.08)",borderRadius:16,overflow:"hidden",position:"relative",display:"flex",flexDirection:"column",justifyContent:"center",padding:"36px 22px",boxShadow:"0 8px 32px rgba(42,33,24,0.08)"}}>
+      <div style={{width:"100%",maxWidth:300,aspectRatio:"9/16",background:"linear-gradient(160deg,#F5EDE0 0%,#F6EDD9 60%,#F5EBE5 100%)",border:"1px solid rgba(191,140,62,0.1)",borderRadius:16,overflow:"hidden",position:"relative",display:"flex",flexDirection:"column",justifyContent:"center",padding:"36px 22px",boxShadow:"0 8px 32px rgba(42,33,24,0.08)"}}>
         <div style={{position:"absolute",top:18,left:22,fontFamily:SN,fontSize:7,letterSpacing:4,color:P.fn,textTransform:"uppercase"}}>luminary</div>
         <div style={{position:"absolute",top:36,left:22,right:22,height:1,background:"linear-gradient(90deg,rgba(191,140,62,0.2),transparent)"}}/>
-        <div style={{position:"absolute",top:46,right:16,width:40,height:40,opacity:0.15}}>
-          <div style={{position:"absolute",width:14,height:14,top:13,left:13,borderRadius:"50%",borderWidth:2,borderStyle:"solid",borderColor:"rgba(196,131,106,0.5)",animation:"orb 6s linear infinite"}}><div style={{width:3,height:3,borderRadius:"50%",background:P.terra,position:"absolute",top:-1.5,left:"50%",marginLeft:-1.5}}/></div>
-          <div style={{position:"absolute",width:26,height:26,top:7,left:7,borderRadius:"50%",borderWidth:1.5,borderStyle:"solid",borderColor:"rgba(122,148,104,0.4)",animation:"orb 10s linear infinite reverse"}}><div style={{width:3,height:3,borderRadius:"50%",background:P.sage,position:"absolute",top:-1.5,left:"50%",marginLeft:-1.5}}/></div>
-          <div style={{position:"absolute",width:38,height:38,top:1,left:1,borderRadius:"50%",borderWidth:1,borderStyle:"solid",borderColor:"rgba(141,128,184,0.3)",animation:"orb 16s linear infinite"}}><div style={{width:2,height:2,borderRadius:"50%",background:P.violet,position:"absolute",top:-1,left:"50%",marginLeft:-1}}/></div>
-          <div style={{width:4,height:4,borderRadius:"50%",background:P.gold,position:"absolute",top:18,left:18}}/>
-        </div>
+        <div style={{position:"absolute",top:48,right:18}}><div style={{position:"relative",width:56,height:56}}><MiniOrrery size={56} opacity={0.45}/></div></div>
         <blockquote style={{fontFamily:SR,fontSize:18,fontWeight:300,color:P.ink,lineHeight:1.58,margin:0,fontStyle:"italic",zIndex:1}}>"{reading.line}"</blockquote>
         <div style={{position:"absolute",bottom:22,left:22,right:22,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
           <div>
@@ -420,9 +512,9 @@ function ChatScreen({chart,name,onBack,userKey}){
   );
 }
 
-/* ═══ MAIN CONTROLLER — nav includes Birth Chart tab ═══ */
+/* ═══ MAIN CONTROLLER — preload, persistent return, 5 tabs ═══ */
 export default function Luminary(){
-  const[scr,setScr]=useState("landing");const[tag,setTag]=useState("before");
+  const[scr,setScr]=useState("boot");const[tag,setTag]=useState("before");
   const[bd,setBd]=useState(null);const[ans,setAns]=useState(null);
   const[chart,setChart]=useState(null);const[reading,setReading]=useState(null);
   const[bca,setBca]=useState(null);const[err,setErr]=useState(null);const[ukey,setUkey]=useState(null);
@@ -430,58 +522,85 @@ export default function Luminary(){
   const post=async(url,body)=>{
     const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
     const raw=await r.text();
-    let d;try{d=JSON.parse(raw);}catch{throw new Error(url+" returned an unreadable response ("+r.status+"): "+raw.slice(0,180));}
+    let d;try{d=JSON.parse(raw);}catch{throw new Error(url+" returned an unreadable response ("+r.status+")");}
     if(d.error)throw new Error(d.error);
     if(!r.ok)throw new Error(url+" failed with status "+r.status);
     return d;
   };
 
+  /* Return visitor: restore everything from Firestore, refresh weekly in background */
+  useEffect(()=>{
+    let saved=null;
+    try{saved=JSON.parse(localStorage.getItem("luminary_user")||"null");}catch{}
+    if(!saved||!saved.key){setScr("landing");return;}
+    (async()=>{
+      try{
+        const u=await post("/api/user",{action:"get",key:saved.key});
+        if(!u.chart)throw new Error("no chart");
+        setChart(u.chart);setReading(u.reading);setBca(u.birthchartAnalysis||null);
+        setBd({name:u.name,ig:u.ig});setAns(u.answers||null);setUkey(saved.key);
+        setScr("reading");
+        /* silent refresh: new week, new reading — chart + birth chart stay cached */
+        if(u.answers){
+          try{
+            const fresh=await post("/api/horoscope",{chartText:u.chart.promptText,name:u.name,...u.answers});
+            setReading(fresh);
+            saveReading({name:u.name,ig:u.ig,chart:u.chart,reading:fresh,answers:u.answers,birthchartAnalysis:u.birthchartAnalysis||null});
+          }catch{}
+        }
+      }catch{localStorage.removeItem("luminary_user");setScr("landing");}
+    })();
+  },[]);
+
+  /* Everything preloads here: chart → horoscope + birthchart/HD in parallel */
   const generate=async(b,a)=>{setScr("loading");try{
     const ch=await post("/api/chart",b);setChart(ch);
-    const ho=await post("/api/horoscope",{chartText:ch.promptText,name:b.name,...a});setReading(ho);
-    const k=(b.ig||b.name||"anon").toLowerCase().replace(/[@\s]+/g,"-").replace(/[^a-z0-9-]/g,"");setUkey(k);
-    saveReading({name:b.name,ig:b.ig,chart:ch,reading:ho,answers:a});
+    const[ho,bc]=await Promise.all([
+      post("/api/horoscope",{chartText:ch.promptText,name:b.name,...a}),
+      post("/api/birthchart",{chartText:ch.promptText,name:b.name}).catch(e=>{console.error("BC preload:",e);return null;}),
+    ]);
+    setReading(ho);if(bc)setBca(bc);
+    const k=(b.ig||b.name||"anon").toLowerCase().replace(/[@\s]+/g,"-").replace(/[^a-z0-9-]/g,"");
+    setUkey(k);
+    try{localStorage.setItem("luminary_user",JSON.stringify({key:k,name:b.name}));}catch{}
+    saveReading({name:b.name,ig:b.ig,chart:ch,reading:ho,answers:a,birthchartAnalysis:bc});
     setScr("reading");
   }catch(e){console.error(e);setErr(e.message);setScr("error");}};
 
-  const openBirthChart=async()=>{
-    if(!chart)return;
-    setScr("birthchart");
-    if(bca)return;
-    try{const d=await post("/api/birthchart",{chartText:chart.promptText,name:bd.name});
-      setBca(d);saveReading({name:bd.name,ig:bd.ig,chart,reading,answers:ans,birthchartAnalysis:d});
-    }catch(e){console.error(e);setBca({headline:"Couldn't load this reading.",bigThree:String(e.message||e)});}};
+  const reset=()=>{try{localStorage.removeItem("luminary_user");}catch{}
+    setBd(null);setAns(null);setChart(null);setReading(null);setBca(null);setErr(null);setUkey(null);setScr("landing");};
 
-  const reset=()=>{setBd(null);setAns(null);setChart(null);setReading(null);setBca(null);setErr(null);setUkey(null);setScr("landing");};
-
-  const navItems=[{id:"landing",l:"Home"},{id:"reading",l:"Reading"},{id:"birthchart",l:"Birth Chart"},{id:"shareable",l:"Your Line"}];
-  const navBtn=(id)=>({fontFamily:SN,fontSize:9,border:"none",padding:"5px 10px",borderRadius:5,cursor:"pointer",background:scr===id?P.warm:"transparent",color:scr===id?P.ink:P.fn});
+  const navItems=[{id:"landing",l:"Home"},{id:"reading",l:"Reading"},{id:"birthchart",l:"Birth Chart"},{id:"humandesign",l:"Design"},{id:"shareable",l:"Your Line"}];
+  const navBtn=(id)=>({fontFamily:SN,fontSize:9,border:"none",padding:"5px 8px",borderRadius:5,cursor:"pointer",background:scr===id?P.warm:"transparent",color:scr===id?P.ink:P.fn});
   const navGo=(id)=>{
-    if(id==="landing")reset();
+    if(id==="landing")setScr(chart?"reading":"landing");
     else if(id==="reading"&&chart&&reading)setScr("reading");
-    else if(id==="birthchart"&&chart)openBirthChart();
+    else if(id==="birthchart"&&chart)setScr("birthchart");
+    else if(id==="humandesign"&&chart)setScr("humandesign");
     else if(id==="shareable"&&reading)setScr("shareable");
   };
 
   return(
     <>
       <style>{V6CSS}</style>
-      <div style={{display:"flex",alignItems:"center",gap:4,padding:"8px 10px",background:"#FFF",borderBottom:"1px solid rgba(42,33,24,0.05)",flexShrink:0}}>
+      <div style={{display:"flex",alignItems:"center",gap:2,padding:"8px 8px",background:"#FFF",borderBottom:"1px solid rgba(42,33,24,0.05)",flexShrink:0}}>
         {navItems.map(n=><button key={n.id} onClick={()=>navGo(n.id)} style={navBtn(n.id)}>{n.l}</button>)}
         <div style={{display:"flex",gap:3,marginLeft:"auto"}}>
-          <button onClick={()=>setTag("before")} style={{fontFamily:SN,fontSize:8,padding:"3px 7px",borderRadius:4,cursor:"pointer",border:"1px solid "+(tag==="before"?"rgba(191,140,62,0.19)":"transparent"),background:tag==="before"?P.goldBg:"transparent",color:tag==="before"?P.gold:P.fn}}>before</button>
-          <button onClick={()=>setTag("as")} style={{fontFamily:SN,fontSize:8,padding:"3px 7px",borderRadius:4,cursor:"pointer",border:"1px solid "+(tag==="as"?"rgba(122,148,104,0.19)":"transparent"),background:tag==="as"?P.sageBg:"transparent",color:tag==="as"?P.sage:P.fn}}>as</button>
+          <button onClick={()=>setTag("before")} style={{fontFamily:SN,fontSize:8,padding:"3px 6px",borderRadius:4,cursor:"pointer",border:"1px solid "+(tag==="before"?"rgba(191,140,62,0.19)":"transparent"),background:tag==="before"?P.goldBg:"transparent",color:tag==="before"?P.gold:P.fn}}>before</button>
+          <button onClick={()=>setTag("as")} style={{fontFamily:SN,fontSize:8,padding:"3px 6px",borderRadius:4,cursor:"pointer",border:"1px solid "+(tag==="as"?"rgba(122,148,104,0.19)":"transparent"),background:tag==="as"?P.sageBg:"transparent",color:tag==="as"?P.sage:P.fn}}>as</button>
         </div>
       </div>
       <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
+        {scr==="boot"&&<div style={{flex:1,background:P.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><Spinner size={48}/></div>}
         {scr==="landing"&&<Landing onStart={()=>setScr("input")} tag={tag}/>}
         {scr==="input"&&<BirthInput onSubmit={b=>{setBd(b);setScr("questions");}}/>}
         {scr==="questions"&&<Questions onSubmit={a=>{setAns(a);generate(bd,a);}} name={bd?.name||""}/>}
         {scr==="loading"&&<LoadingScreen name={bd?.name||""}/>}
         {scr==="reading"&&chart&&reading&&<ReadingScreen chart={chart} reading={reading} name={bd?.name||""} onChat={()=>setScr("chat")} onReset={reset} onShareable={()=>setScr("shareable")}/>}
         {scr==="birthchart"&&chart&&<BirthChartScreen chart={chart} analysis={bca} name={bd?.name||""} onChat={()=>setScr("chat")}/>}
+        {scr==="humandesign"&&chart&&<HDScreen chart={chart} analysis={bca} name={bd?.name||""} onChat={()=>setScr("chat")}/>}
         {scr==="shareable"&&reading&&chart&&<ShareableScreen reading={reading} name={bd?.name||""} chart={chart} onBack={()=>setScr("reading")}/>}
-        {scr==="chat"&&chart&&<ChatScreen chart={chart} name={bd?.name||""} onBack={()=>setScr(bca?"birthchart":"reading")} userKey={ukey}/>}
+        {scr==="chat"&&chart&&<ChatScreen chart={chart} name={bd?.name||""} onBack={()=>setScr("reading")} userKey={ukey}/>}
         {scr==="error"&&(
           <div style={{flex:1,background:P.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:40,textAlign:"center"}}>
             <p style={{fontFamily:SR,fontSize:22,fontWeight:300,color:P.ink,marginBottom:8}}>Something went wrong</p>
