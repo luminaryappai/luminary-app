@@ -496,8 +496,8 @@ function ShareableScreen({reading,name,chart,onBack}){
 }
 
 /* ═══ CHAT ═══ */
-function ChatScreen({chart,name,onBack,userKey}){
-  const[msgs,setMsgs]=useState([{role:"assistant",text:"Welcome, "+name+". I'm Luminary — trained on the combined methods of the great schools of astrology: evolutionary, psychological, Hellenistic, and modern classical technique, plus complete Human Design mechanics. I'm reading your exact chart right now — "+chart.sun+" Sun, "+chart.moon+" Moon"+(chart.rising!=="Unknown"?", "+chart.rising+" Rising":"")+(chart.humanDesign?", "+chart.humanDesign.type+" ("+chart.humanDesign.profile+")":"")+" — not a generic horoscope. Ask me anything about your life, your timing, or your design."}]);
+function ChatScreen({chart,name,onBack,userKey,initialMsgs,onSync}){
+  const[msgs,setMsgs]=useState((initialMsgs&&initialMsgs.length>0)?initialMsgs:[{role:"assistant",text:"Welcome, "+name+". I'm Luminary — trained on the combined methods of the great schools of astrology: evolutionary, psychological, Hellenistic, and modern classical technique, plus complete Human Design mechanics. I'm reading your exact chart right now — "+chart.sun+" Sun, "+chart.moon+" Moon"+(chart.rising!=="Unknown"?", "+chart.rising+" Rising":"")+(chart.humanDesign?", "+chart.humanDesign.type+" ("+chart.humanDesign.profile+")":"")+" — not a generic horoscope. Ask me anything about your life, your timing, or your design."}]);
   const[inp,setInp]=useState("");const[ld,setLd]=useState(false);const ref=useRef(null);
   const suggestions=[
     "What should I focus on this week?",
@@ -507,10 +507,10 @@ function ChatScreen({chart,name,onBack,userKey}){
     "What career am I built for?",
   ];
   const sendText=async(text)=>{if(!text.trim()||ld)return;setInp("");setLd(true);
-    const upd=[...msgs,{role:"user",text}];setMsgs(upd);
+    const upd=[...msgs,{role:"user",text}];setMsgs(upd);if(onSync)onSync(upd);
     try{const am=[{role:"user",content:"Chart: "+chart.promptText+"\nQuerent: "+name}];upd.forEach(m=>am.push({role:m.role==="user"?"user":"assistant",content:m.text}));
       const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:am,userName:name})});const d=await r.json();
-      const nm2=[...upd,{role:"assistant",text:d.reply}];setMsgs(nm2);if(userKey)saveChatHist(userKey,nm2);
+      const nm2=[...upd,{role:"assistant",text:d.reply}];setMsgs(nm2);if(onSync)onSync(nm2);if(userKey)saveChatHist(userKey,nm2);
     }catch{setMsgs(p=>[...p,{role:"assistant",text:"Connection lost. Try again?"}]);}setLd(false);};
   useEffect(()=>{if(ref.current)ref.current.scrollTop=ref.current.scrollHeight;},[msgs]);
   const send=()=>sendText(inp.trim());
@@ -557,29 +557,45 @@ function FriendsScreen({userChart,userName,userBirth,friends,setFriends,ukey,pos
   const[mode,setMode]=useState("friendship");
   const[busy,setBusy]=useState(false);const[fErr,setFErr]=useState(null);
   const[openIdx,setOpenIdx]=useState(0);
-  const searchC=async(q)=>{
+  const searchT=useRef(null);
+  const geocodeCity=async(q,stateCode)=>{
+    const stName=US_STATES.find(x=>x[1]===stateCode);
+    const query=stateCode==="INTL"?q:q+", "+(stName?stName[0]:"")+", USA";
+    const r=await fetch("https://nominatim.openstreetmap.org/search?q="+encodeURIComponent(query)+"&format=json&limit=8");
+    const d=await r.json();
+    let places=d.filter(x=>x.class==="place"||x.class==="boundary");
+    if(places.length===0)places=d; /* graceful fallback: show whatever came back */
+    return places.map(x=>{
+      const nm=x.display_name.split(",")[0].trim();
+      const label=stateCode==="INTL"?x.display_name.split(",").slice(0,2).join(",").trim()+" — "+x.display_name.split(",").pop().trim():nm+", "+stateCode;
+      return{n:label,lat:parseFloat(x.lat),lon:parseFloat(x.lon)};
+    });
+  };
+  const searchC=(q)=>{
     setCityQ(q);setCity(null);
-    if(q.length<2){setCityR([]);return;}
-    try{
-      const stName=US_STATES.find(x=>x[1]===st);
-      const query=st==="INTL"?q:q+", "+(stName?stName[0]:"")+", USA";
-      const r=await fetch("https://nominatim.openstreetmap.org/search?q="+encodeURIComponent(query)+"&format=json&limit=8&addressdetails=1");
-      const d=await r.json();
-      const places=d.filter(x=>x.class==="place"||x.class==="boundary").map(x=>{
-        const nm=x.display_name.split(",")[0].trim();
-        const label=st==="INTL"?x.display_name.split(",").slice(0,2).join(",").trim()+", "+x.display_name.split(",").pop().trim():nm+", "+st;
-        return{n:label,lat:parseFloat(x.lat),lon:parseFloat(x.lon)};
-      });
-      const seen=new Set();
-      setCityR(places.filter(x=>{if(seen.has(x.n))return false;seen.add(x.n);return true;}).slice(0,6));
-    }catch{setCityR([]);}
+    if(searchT.current)clearTimeout(searchT.current);
+    if(q.length<3){setCityR([]);return;}
+    /* debounce 450ms — rapid keystrokes were tripping the geocoder's rate limit */
+    searchT.current=setTimeout(async()=>{
+      try{
+        const places=await geocodeCity(q,st);
+        const seen=new Set();
+        setCityR(places.filter(x=>{if(seen.has(x.n))return false;seen.add(x.n);return true;}).slice(0,6));
+      }catch{setCityR([]);}
+    },450);
   };
   const pickCity=(c)=>{setCity(c);setCityQ(c.n);setCityR([]);};
   const addFriend=async()=>{
-    if(!fn.trim()||!fd||!city){setFErr("Name, birth date, and city are required.");return;}
+    if(!fn.trim()||!fd){setFErr("Name and birth date are required.");return;}
     setBusy(true);setFErr(null);
+    let cityFinal=city;
+    if(!cityFinal&&cityQ.trim().length>=2&&st){
+      /* they typed a city but didn't tap a suggestion — resolve it for them */
+      try{const places=await geocodeCity(cityQ.trim(),st);if(places[0])cityFinal=places[0];}catch{}
+    }
+    if(!cityFinal){setBusy(false);setFErr(st?"Couldn't find that city — check the spelling or tap a suggestion.":"Pick a birth state, then enter the city.");return;}
     try{
-      const fCh=await post("/api/chart",{name:fn.trim(),date:fd,time:ft||"unknown",lat:city.lat,lon:city.lon,city:city.n});
+      const fCh=await post("/api/chart",{name:fn.trim(),date:fd,time:ft||"unknown",lat:cityFinal.lat,lon:cityFinal.lon,city:cityFinal.n});
       const comp=await post("/api/compatibility",{
         userName,friendName:fn.trim(),
         userPrompt:userChart.promptText,friendPrompt:fCh.promptText,
@@ -587,7 +603,7 @@ function FriendsScreen({userChart,userName,userBirth,friends,setFriends,ukey,pos
         friendNatal:fCh.natal?fCh.natal.planets:null,
         mode,userBirthDate:userBirth||null,friendBirthDate:fd,
       });
-      const entry={name:fn.trim(),mode,sun:fCh.sun,moon:fCh.moon,rising:fCh.rising,result:comp,ts:Date.now()};
+      const entry={name:fn.trim(),mode,city:cityFinal.n,sun:fCh.sun,moon:fCh.moon,rising:fCh.rising,result:comp,ts:Date.now()};
       const list=[entry,...friends];
       setFriends(list);setOpenIdx(0);setAdding(false);
       setFn("");setFd("");setFt("");setCityQ("");setCity(null);setSt("");setCityR([]);
@@ -738,7 +754,7 @@ export default function Luminary(){
   };
   const[bd,setBd]=useState(null);const[ans,setAns]=useState(null);
   const[chart,setChart]=useState(null);const[reading,setReading]=useState(null);
-  const[bca,setBca]=useState(null);const[err,setErr]=useState(null);const[ukey,setUkey]=useState(null);
+  const[bca,setBca]=useState(null);const[err,setErr]=useState(null);const[ukey,setUkey]=useState(null);const[chatMsgs,setChatMsgs]=useState(null);
 
   const post=async(url,body)=>{
     const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
@@ -759,7 +775,7 @@ export default function Luminary(){
         const u=await post("/api/user",{action:"get",key:saved.key});
         if(!u.chart)throw new Error("no chart");
         setChart(u.chart);setReading(u.reading);setBca(u.birthchartAnalysis||null);
-        setBd({name:u.name,ig:u.ig,...(u.birth||{})});setAns(u.answers||null);setUkey(saved.key);setFriends(u.friends||[]);
+        setBd({name:u.name,ig:u.ig,...(u.birth||{})});setAns(u.answers||null);setUkey(saved.key);setFriends(u.friends||[]);setChatMsgs(u.chatHistory&&u.chatHistory.length>0?u.chatHistory:null);
         setScr("reading");
         /* silent refresh: new week, new reading — chart + birth chart stay cached */
         if(u.answers){
@@ -789,7 +805,7 @@ export default function Luminary(){
   }catch(e){console.error(e);setErr(e.message);setScr("error");}};
 
   const reset=()=>{try{localStorage.removeItem("luminary_user");}catch{}
-    setBd(null);setAns(null);setChart(null);setReading(null);setBca(null);setErr(null);setUkey(null);setScr("landing");};
+    setBd(null);setAns(null);setChart(null);setReading(null);setBca(null);setErr(null);setUkey(null);setChatMsgs(null);setFriends([]);setScr("landing");};
 
   const navItems=[{id:"landing",l:"Home"},{id:"reading",l:"Reading"},{id:"birthchart",l:"Birth Chart"},{id:"humandesign",l:"Design"},{id:"shareable",l:"Star Note"},{id:"chat",l:"✦ Ask"},{id:"friends",l:"Friends"}];
   const navBtn=(id)=>({fontFamily:SN,fontSize:9,border:"none",padding:"5px 8px",borderRadius:5,cursor:"pointer",background:scr===id?P.warm:"transparent",color:scr===id?P.ink:P.fn});
@@ -821,7 +837,7 @@ export default function Luminary(){
         {scr==="humandesign"&&chart&&<HDScreen chart={chart} analysis={bca} name={bd?.name||""} onChat={()=>setScr("chat")}/>}
         {scr==="shareable"&&reading&&chart&&<ShareableScreen reading={reading} name={bd?.name||""} chart={chart} onBack={()=>setScr("reading")}/>}
         {scr==="friends"&&chart&&<FriendsScreen userChart={chart} userName={bd?.name||""} userBirth={bd?.date||null} friends={friends} setFriends={setFriends} ukey={ukey} post={post} onChat={()=>setScr("chat")}/>}
-        {scr==="chat"&&chart&&<ChatScreen chart={chart} name={bd?.name||""} onBack={()=>setScr("reading")} userKey={ukey}/>}
+        {scr==="chat"&&chart&&<ChatScreen chart={chart} name={bd?.name||""} onBack={()=>setScr("reading")} userKey={ukey} initialMsgs={chatMsgs} onSync={setChatMsgs}/>}
         {scr==="error"&&(
           <div style={{flex:1,background:P.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:40,textAlign:"center"}}>
             <p style={{fontFamily:SR,fontSize:22,fontWeight:300,color:P.ink,marginBottom:8}}>Something went wrong</p>
