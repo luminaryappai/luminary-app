@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ashtakoota, lifePath, numerologyCompat, composite, chemistryAxes } from "./engines.js";
 
 const MODELS=["claude-sonnet-4-5","claude-sonnet-4-20250514","claude-3-5-sonnet-20241022"];
 
@@ -73,36 +74,59 @@ function synastry(aP,bP,aName,bName){
 
 export async function POST(req){
   try{
-    const{userName,friendName,userPrompt,friendPrompt,userNatal,friendNatal,mode}=await req.json();
+    const{userName,friendName,userPrompt,friendPrompt,userNatal,friendNatal,mode,userBirthDate,friendBirthDate}=await req.json();
     const aspects=(userNatal&&friendNatal)?synastry(userNatal,friendNatal,userName,friendName):[];
-    const aspectText=aspects.length?aspects.map(a=>a.text+" (orb "+a.orb+"°)").join("; "):"birth times limit aspect precision";
-    const modeText=mode==="romantic"?"ROMANTIC compatibility — chemistry, attraction, emotional safety, long-term potential":mode==="friendship"?"FRIENDSHIP compatibility — loyalty, fun, communication, how they support each other":"a standalone birth chart portrait of "+friendName+" (no compatibility)";
+    const aspectText=aspects.length?aspects.map(a=>a.text+" (orb "+a.orb+"\u00b0)").join("; "):"limited by missing birth times";
+
+    /* Computed engines — documented systems, no invented dials */
+    let vedic=null,numbers=null,bond=null,chem=null;
+    if(mode!=="chart"){
+      if(userNatal&&friendNatal&&userNatal.Moon&&friendNatal.Moon&&userBirthDate&&friendBirthDate){
+        vedic=ashtakoota(userNatal.Moon.deg,friendNatal.Moon.deg,parseInt(userBirthDate.slice(0,4)),parseInt(friendBirthDate.slice(0,4)));
+      }
+      if(userBirthDate&&friendBirthDate){
+        numbers=numerologyCompat(lifePath(userBirthDate),lifePath(friendBirthDate));
+      }
+      if(userNatal&&friendNatal)bond=composite(userNatal,friendNatal);
+      chem=chemistryAxes(aspects);
+    }
+
+    const modeText=mode==="romantic"?"ROMANTIC compatibility":mode==="friendship"?"FRIENDSHIP compatibility":"standalone birth chart portrait of "+friendName;
+    const computedBlock=mode==="chart"?"":`
+COMPUTED ENGINES (real calculations — reference these, never invent):
+- SYNASTRY ASPECTS: ${aspectText}
+- CHEMISTRY AXES (from aspect weights): ${chem?Object.entries(chem).map(([k,v])=>k+" "+v.score+"/10").join(", "):"n/a"}
+- VEDIC ASHTAKOOTA (Lahiri): ${vedic?vedic.total+"/36 ("+vedic.verdict+") — Moons: "+vedic.moonA.nakshatra+"/"+vedic.moonA.rashi+" + "+vedic.moonB.nakshatra+"/"+vedic.moonB.rashi+"; kootas: "+vedic.kootas.map(k=>k.name+" "+k.score+"/"+k.max).join(", "):"needs both birth dates"}
+- NUMEROLOGY: ${numbers?"Life Paths "+numbers.lifePathA+" + "+numbers.lifePathB+" — "+numbers.harmony+(numbers.note?" — "+numbers.note:""):"n/a"}
+- COMPOSITE (midpoint Bond chart): ${bond?Object.entries(bond).map(([p,sg])=>p+" in "+sg).join(", "):"n/a"}`;
+
     const text=await callClaude({
-      max_tokens:5000,
-      messages:[{role:"user",content:`You are Luminary's master reader. Concrete life patterns first, mechanics underneath. Warm, specific, honest about frictions — never fabricate numeric scores; speak in real astrological observations only.
+      max_tokens:6000,
+      messages:[{role:"user",content:`You are Luminary's master reader — trained in Western synastry, Vedic Ashtakoota, composite technique, and numerology. Concrete patterns first, mechanics underneath. Honest about frictions. Never fabricate scores — every number you cite must come from the computed engines below.
 
 PERSON A (${userName}): ${userPrompt}
 PERSON B (${friendName}): ${friendPrompt}
-COMPUTED SYNASTRY ASPECTS (real, calculated): ${aspectText}
-MODE: ${modeText}
+MODE: ${modeText}${computedBlock}
 
 Return ONLY raw JSON, word limits strict:
 {
  "friendSnapshot":{
-  "headline":"the single most striking thing about ${friendName}'s chart (under 35 words)",
-  "portrait":"who ${friendName} is — patterns, what people notice, their engine (under 70 words)"
+  "headline":"most striking thing about ${friendName}'s chart (under 35 words)",
+  "portrait":"who ${friendName} is — patterns, engine, what people notice (under 70 words)"
  },
  "compatibility":${mode==="chart"?"null":`{
-  "overview":"the honest read on this pairing — lead with the dynamic people would observe (under 70 words)",
-  "strengths":["concrete strength of this pairing","strength 2","strength 3"],
-  "frictions":["honest friction point","friction 2"],
-  "advice":"one concrete way to make this connection thrive (under 40 words)",
-  "keyAspects":[{"aspect":"pick the 3 most defining computed aspects","meaning":"what each one actually does between them (under 30 words)"},{"aspect":"...","meaning":"..."},{"aspect":"...","meaning":"..."}]
+  "overview":"the honest read on this pairing as lived experience (under 70 words)",
+  "chemistryNarrative":"what the chemistry axes mean IN LIFE for these two — reference the strongest and weakest axis by name (under 60 words)",
+  "vedicNarrative":"what the Ashtakoota result means — name the strongest koota and any 0-score koota honestly, translate for a modern reader (under 60 words)",
+  "numbersNarrative":"what their life path pairing means practically (under 40 words)",
+  "bondNarrative":"the composite chart: what this relationship IS as its own entity, from the Bond placements (under 50 words)",
+  "strengths":["concrete strength","strength 2","strength 3"],
+  "frictions":["honest friction","friction 2"],
+  "advice":"one concrete way to make this thrive (under 40 words)"
  }`}
-}
-Reference the COMPUTED aspects only — never invent aspects not listed.`}],
+}`}],
     });
-    return NextResponse.json({...extractJSON(text),computedAspects:aspects});
+    return NextResponse.json({...extractJSON(text),computed:{aspects,vedic,numbers,bond,chemistry:chem}});
   }catch(e){
     console.error("Compatibility error:",e);
     return NextResponse.json({error:e.message},{status:500});

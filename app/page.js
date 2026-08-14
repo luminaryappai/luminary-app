@@ -274,7 +274,7 @@ function ReadingScreen({chart,reading,name,onChat,onReset,onShareable}){
       {reading.line&&(
         <div onClick={onShareable} style={{background:"linear-gradient(135deg,#F5EDE0 0%,#F6EDD9 55%,#F5EBE5 100%)",border:"1px solid rgba(191,140,62,0.14)",borderRadius:14,padding:"26px 20px",position:"relative",overflow:"hidden",cursor:"pointer",boxShadow:SH3}}>
         <div style={{position:"absolute",top:-30,right:-20,width:160,height:160,background:"radial-gradient(circle,rgba(191,140,62,0.1) 0%,transparent 55%)"}}/>
-          <MiniOrrery size={52} opacity={0.4}/>
+          <div style={{position:"absolute",top:-70,right:-110,width:380,height:380,opacity:0.32,pointerEvents:"none"}}><OrrerySVG size={380} slow={3}/></div>
           <div style={{fontFamily:SN,fontSize:6,letterSpacing:3,color:P.lt,textTransform:"uppercase",marginBottom:10}}>luminary · star note</div>
           <blockquote style={{fontFamily:SR,fontSize:17,fontWeight:300,color:P.ink,lineHeight:1.58,margin:0,fontStyle:"italic",position:"relative",zIndex:1,maxWidth:"85%"}}>"{reading.line}"</blockquote>
           <div style={{marginTop:14,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
@@ -295,9 +295,7 @@ function ReadingScreen({chart,reading,name,onChat,onReset,onShareable}){
           <div style={{fontFamily:SR,fontSize:15,color:P.ink,fontStyle:"italic",lineHeight:1.5,fontWeight:300}}>{reading.mantra}</div>
         </div>
       )}
-      <button onClick={onChat} style={{position:"fixed",bottom:20,right:20,zIndex:100,fontFamily:SN,fontSize:11,fontWeight:500,letterSpacing:0.8,color:"#FAF6F0",background:P.ink,border:"none",padding:"12px 22px",borderRadius:24,cursor:"pointer",boxShadow:"0 4px 20px rgba(42,33,24,0.25)",display:"flex",alignItems:"center",gap:5}}>
-        <span style={{fontSize:12,opacity:0.7}}>✦</span> Ask Luminary
-      </button>
+      <button onClick={onChat} style={{position:"fixed",right:0,top:"44%",zIndex:100,fontFamily:SN,fontSize:10,fontWeight:500,letterSpacing:2,color:"#FAF6F0",background:P.ink,border:"none",padding:"16px 9px",borderRadius:"14px 0 0 14px",cursor:"pointer",boxShadow:"-3px 3px 16px rgba(42,33,24,0.2)",writingMode:"vertical-rl",textOrientation:"mixed"}}>✦ Ask</button>
     </div>
   );
 }
@@ -400,7 +398,7 @@ function BirthChartScreen({chart,analysis,name,onChat}){
           {analysis.soulMantra&&<div style={{background:P.goldBg,border:"1px solid rgba(191,140,62,0.1)",borderRadius:14,padding:"18px 20px",marginTop:16,textAlign:"center"}}><div style={{fontFamily:SN,fontSize:7,letterSpacing:3,color:P.gold,textTransform:"uppercase",marginBottom:6}}>soul mantra</div><p style={{fontFamily:SR,fontSize:16,color:P.ink,fontStyle:"italic",lineHeight:1.5,fontWeight:300}}>{analysis.soulMantra}</p></div>}
         </>
       )}
-      <button onClick={onChat} style={{position:"fixed",bottom:20,right:20,zIndex:100,fontFamily:SN,fontSize:11,fontWeight:500,letterSpacing:0.8,color:"#FAF6F0",background:P.ink,border:"none",padding:"12px 22px",borderRadius:24,cursor:"pointer",boxShadow:"0 4px 20px rgba(42,33,24,0.25)",display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12,opacity:0.7}}>✦</span> Ask Luminary</button>
+      <button onClick={onChat} style={{position:"fixed",right:0,top:"44%",zIndex:100,fontFamily:SN,fontSize:10,fontWeight:500,letterSpacing:2,color:"#FAF6F0",background:P.ink,border:"none",padding:"16px 9px",borderRadius:"14px 0 0 14px",cursor:"pointer",boxShadow:"-3px 3px 16px rgba(42,33,24,0.2)",writingMode:"vertical-rl",textOrientation:"mixed"}}>✦ Ask</button>
     </div>
   );
 }
@@ -451,7 +449,7 @@ function HDScreen({chart,analysis,name,onChat}){
           )}
         </>
       )}
-      <button onClick={onChat} style={{position:"fixed",bottom:20,right:20,zIndex:100,fontFamily:SN,fontSize:11,fontWeight:500,letterSpacing:0.8,color:"#FAF6F0",background:P.ink,border:"none",padding:"12px 22px",borderRadius:24,cursor:"pointer",boxShadow:"0 4px 20px rgba(42,33,24,0.25)",display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12,opacity:0.7}}>✦</span> Ask Luminary</button>
+      <button onClick={onChat} style={{position:"fixed",right:0,top:"44%",zIndex:100,fontFamily:SN,fontSize:10,fontWeight:500,letterSpacing:2,color:"#FAF6F0",background:P.ink,border:"none",padding:"16px 9px",borderRadius:"14px 0 0 14px",cursor:"pointer",boxShadow:"-3px 3px 16px rgba(42,33,24,0.2)",writingMode:"vertical-rl",textOrientation:"mixed"}}>✦ Ask</button>
     </div>
   );
 }
@@ -465,7 +463,7 @@ function ShareableScreen({reading,name,chart,onBack}){
       <div style={{width:"100%",maxWidth:300,aspectRatio:"9/16",background:"linear-gradient(160deg,#F5EDE0 0%,#F6EDD9 60%,#F5EBE5 100%)",border:"1px solid rgba(191,140,62,0.1)",borderRadius:16,overflow:"hidden",position:"relative",display:"flex",flexDirection:"column",justifyContent:"center",padding:"36px 22px",boxShadow:"0 8px 32px rgba(42,33,24,0.08)"}}>
         <div style={{position:"absolute",top:18,left:22,fontFamily:SN,fontSize:7,letterSpacing:4,color:P.fn,textTransform:"uppercase"}}>luminary</div>
         <div style={{position:"absolute",top:36,left:22,right:22,height:1,background:"linear-gradient(90deg,rgba(191,140,62,0.2),transparent)"}}/>
-        <div style={{position:"absolute",top:48,right:18}}><div style={{position:"relative",width:56,height:56}}><MiniOrrery size={56} opacity={0.45}/></div></div>
+        <div style={{position:"absolute",top:-70,right:-100,width:320,height:320,opacity:0.35,pointerEvents:"none"}}><OrrerySVG size={320} slow={3}/></div>
         <blockquote style={{fontFamily:SR,fontSize:18,fontWeight:300,color:P.ink,lineHeight:1.58,margin:0,fontStyle:"italic",zIndex:1}}>"{reading.line}"</blockquote>
         <div style={{position:"absolute",bottom:22,left:22,right:22,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
           <div>
@@ -538,7 +536,7 @@ function ChatScreen({chart,name,onBack,userKey}){
 }
 
 /* ═══ FRIENDS — read a friend's chart + romantic/friendship compatibility ═══ */
-function FriendsScreen({userChart,userName,friends,setFriends,ukey,post,onChat}){
+function FriendsScreen({userChart,userName,userBirth,friends,setFriends,ukey,post,onChat}){
   const[adding,setAdding]=useState(friends.length===0);
   const[fn,setFn]=useState("");const[fd,setFd]=useState("");const[ft,setFt]=useState("");
   const[cityQ,setCityQ]=useState("");const[cityR,setCityR]=useState([]);const[city,setCity]=useState(null);
@@ -556,7 +554,7 @@ function FriendsScreen({userChart,userName,friends,setFriends,ukey,post,onChat})
         userPrompt:userChart.promptText,friendPrompt:fCh.promptText,
         userNatal:userChart.natal?userChart.natal.planets:null,
         friendNatal:fCh.natal?fCh.natal.planets:null,
-        mode,
+        mode,userBirthDate:userBirth||null,friendBirthDate:fd,
       });
       const entry={name:fn.trim(),mode,sun:fCh.sun,moon:fCh.moon,rising:fCh.rising,result:comp,ts:Date.now()};
       const list=[entry,...friends];
@@ -628,10 +626,55 @@ function FriendsScreen({userChart,userName,friends,setFriends,ukey,post,onChat})
                   <p style={{fontFamily:SR,fontSize:13,color:P.mid,fontStyle:"italic",lineHeight:1.65}}>{snap.portrait}</p>
                 </div>}
                 {c&&<>
-                  <p style={{fontFamily:SR,fontSize:14,color:P.mid,fontStyle:"italic",lineHeight:1.7,marginBottom:10}}>{c.overview}</p>
+                  <p style={{fontFamily:SR,fontSize:14,color:P.mid,fontStyle:"italic",lineHeight:1.7,marginBottom:12}}>{c.overview}</p>
+                  {r.computed&&r.computed.chemistry&&(
+                    <div style={{background:P.card,border:"1px solid rgba(196,131,106,0.15)",borderRadius:12,padding:"14px 16px",marginBottom:10}}>
+                      <div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.terra,textTransform:"uppercase",fontWeight:500,marginBottom:10}}>Chemistry</div>
+                      {Object.entries(r.computed.chemistry).map(([axis,v],j)=>(
+                        <div key={j} style={{marginBottom:8}}>
+                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                            <span style={{fontFamily:SN,fontSize:11,color:P.ink}}>{axis}</span>
+                            <span style={{fontFamily:SR,fontSize:13,color:P.terra}}>{v.score}<span style={{fontSize:9,color:P.fn}}>/10</span></span>
+                          </div>
+                          <div style={{width:"100%",height:4,borderRadius:2,background:P.warm}}><div style={{width:(v.score*10)+"%",height:"100%",borderRadius:2,background:"linear-gradient(90deg,"+P.sage+","+P.terra+")"}}/></div>
+                        </div>
+                      ))}
+                      {c.chemistryNarrative&&<p style={{fontFamily:SR,fontSize:12,color:P.mid,fontStyle:"italic",lineHeight:1.6,marginTop:8}}>{c.chemistryNarrative}</p>}
+                    </div>
+                  )}
+                  {r.computed&&r.computed.vedic&&(
+                    <div style={{background:P.violetBg,border:"1px solid rgba(141,128,184,0.15)",borderRadius:12,padding:"14px 16px",marginBottom:10}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                        <div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.violet,textTransform:"uppercase",fontWeight:500}}>Vedic · Ashtakoota</div>
+                        <div style={{fontFamily:SR,fontSize:18,color:P.ink}}>{r.computed.vedic.total}<span style={{fontSize:10,color:P.fn}}>/36 · {r.computed.vedic.verdict}</span></div>
+                      </div>
+                      <div style={{fontFamily:SN,fontSize:9,color:P.lt,marginBottom:8}}>Moons: {r.computed.vedic.moonA.nakshatra} ({r.computed.vedic.moonA.rashi}) + {r.computed.vedic.moonB.nakshatra} ({r.computed.vedic.moonB.rashi})</div>
+                      {r.computed.vedic.kootas.map((k,j)=>(
+                        <div key={j} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",borderBottom:j<7?"1px solid rgba(141,128,184,0.08)":"none"}}>
+                          <span style={{fontFamily:SN,fontSize:10,color:P.ink}}>{k.name} <span style={{color:P.fn,fontSize:9}}>· {k.detail}</span></span>
+                          <span style={{fontFamily:SR,fontSize:11,color:k.score===0?P.terra:P.violet}}>{k.score}/{k.max}</span>
+                        </div>
+                      ))}
+                      {c.vedicNarrative&&<p style={{fontFamily:SR,fontSize:12,color:P.mid,fontStyle:"italic",lineHeight:1.6,marginTop:8}}>{c.vedicNarrative}</p>}
+                    </div>
+                  )}
+                  {r.computed&&r.computed.numbers&&(
+                    <div style={{background:P.goldBg,border:"1px solid rgba(191,140,62,0.12)",borderRadius:12,padding:"12px 16px",marginBottom:10}}>
+                      <div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.gold,textTransform:"uppercase",fontWeight:500,marginBottom:4}}>Numbers</div>
+                      <div style={{fontFamily:SR,fontSize:13,color:P.ink,marginBottom:4}}>Life Path {r.computed.numbers.lifePathA} + Life Path {r.computed.numbers.lifePathB} — {r.computed.numbers.harmony}</div>
+                      {c.numbersNarrative&&<p style={{fontFamily:SR,fontSize:12,color:P.mid,fontStyle:"italic",lineHeight:1.6}}>{c.numbersNarrative}</p>}
+                    </div>
+                  )}
+                  {r.computed&&r.computed.bond&&(
+                    <div style={{background:P.sageBg,border:"1px solid rgba(122,148,104,0.12)",borderRadius:12,padding:"12px 16px",marginBottom:10}}>
+                      <div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.sage,textTransform:"uppercase",fontWeight:500,marginBottom:4}}>The Bond · your composite chart</div>
+                      <div style={{fontFamily:SN,fontSize:10,color:P.lt,marginBottom:4}}>{Object.entries(r.computed.bond).map(([pl,sg])=>pl+" in "+sg).join(" · ")}</div>
+                      {c.bondNarrative&&<p style={{fontFamily:SR,fontSize:12,color:P.mid,fontStyle:"italic",lineHeight:1.6}}>{c.bondNarrative}</p>}
+                    </div>
+                  )}
                   {c.strengths&&<div style={{marginBottom:10}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.sage,textTransform:"uppercase",fontWeight:500,marginBottom:6}}>What works</div>{c.strengths.map((x,j)=><p key={j} style={{fontFamily:SR,fontSize:13,color:P.mid,fontStyle:"italic",lineHeight:1.6,marginBottom:3}}>✦ {x}</p>)}</div>}
                   {c.frictions&&<div style={{marginBottom:10}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.terra,textTransform:"uppercase",fontWeight:500,marginBottom:6}}>Watch for</div>{c.frictions.map((x,j)=><p key={j} style={{fontFamily:SR,fontSize:13,color:P.mid,fontStyle:"italic",lineHeight:1.6,marginBottom:3}}>◦ {x}</p>)}</div>}
-                  {c.keyAspects&&<div style={{marginBottom:10}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.violet,textTransform:"uppercase",fontWeight:500,marginBottom:6}}>The astrology</div>{c.keyAspects.map((a,j)=><div key={j} style={{marginBottom:6}}><div style={{fontFamily:SN,fontSize:11,fontWeight:500,color:P.ink}}>{a.aspect}</div><p style={{fontFamily:SR,fontSize:12,color:P.mid,fontStyle:"italic",lineHeight:1.55}}>{a.meaning}</p></div>)}</div>}
+                  {r.computed&&r.computed.aspects&&r.computed.aspects.length>0&&<div style={{marginBottom:10}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.violet,textTransform:"uppercase",fontWeight:500,marginBottom:6}}>Synastry aspects</div>{r.computed.aspects.slice(0,8).map((a,j)=><div key={j} style={{fontFamily:SN,fontSize:10,color:P.mid,padding:"2px 0"}}>{a.text} <span style={{color:P.fn,fontSize:9}}>({a.orb}°)</span></div>)}</div>}
                   {c.advice&&<div style={{background:P.sageBg,border:"1px solid rgba(122,148,104,0.12)",borderRadius:12,padding:"12px 16px"}}><div style={{fontFamily:SN,fontSize:7,letterSpacing:2,color:P.sage,textTransform:"uppercase",marginBottom:4}}>Make it thrive</div><p style={{fontFamily:SR,fontSize:13,color:P.ink,fontStyle:"italic",lineHeight:1.6}}>{c.advice}</p></div>}
                 </>}
               </div>
@@ -639,7 +682,7 @@ function FriendsScreen({userChart,userName,friends,setFriends,ukey,post,onChat})
           </div>
         );
       })}
-      <button onClick={onChat} style={{position:"fixed",bottom:20,right:20,zIndex:100,fontFamily:SN,fontSize:11,fontWeight:500,letterSpacing:0.8,color:"#FAF6F0",background:P.ink,border:"none",padding:"12px 22px",borderRadius:24,cursor:"pointer",boxShadow:"0 4px 20px rgba(42,33,24,0.25)",display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12,opacity:0.7}}>✦</span> Ask Luminary</button>
+      <button onClick={onChat} style={{position:"fixed",right:0,top:"44%",zIndex:100,fontFamily:SN,fontSize:10,fontWeight:500,letterSpacing:2,color:"#FAF6F0",background:P.ink,border:"none",padding:"16px 9px",borderRadius:"14px 0 0 14px",cursor:"pointer",boxShadow:"-3px 3px 16px rgba(42,33,24,0.2)",writingMode:"vertical-rl",textOrientation:"mixed"}}>✦ Ask</button>
     </div>
   );
 }
@@ -738,7 +781,7 @@ export default function Luminary(){
         {scr==="birthchart"&&chart&&<BirthChartScreen chart={chart} analysis={bca} name={bd?.name||""} onChat={()=>setScr("chat")}/>}
         {scr==="humandesign"&&chart&&<HDScreen chart={chart} analysis={bca} name={bd?.name||""} onChat={()=>setScr("chat")}/>}
         {scr==="shareable"&&reading&&chart&&<ShareableScreen reading={reading} name={bd?.name||""} chart={chart} onBack={()=>setScr("reading")}/>}
-        {scr==="friends"&&chart&&<FriendsScreen userChart={chart} userName={bd?.name||""} friends={friends} setFriends={setFriends} ukey={ukey} post={post} onChat={()=>setScr("chat")}/>}
+        {scr==="friends"&&chart&&<FriendsScreen userChart={chart} userName={bd?.name||""} userBirth={bd?.date||null} friends={friends} setFriends={setFriends} ukey={ukey} post={post} onChat={()=>setScr("chat")}/>}
         {scr==="chat"&&chart&&<ChatScreen chart={chart} name={bd?.name||""} onBack={()=>setScr("reading")} userKey={ukey}/>}
         {scr==="error"&&(
           <div style={{flex:1,background:P.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:40,textAlign:"center"}}>
