@@ -101,7 +101,7 @@ COMPUTED ENGINES (real calculations — reference these, never invent):
 - COMPOSITE (midpoint Bond chart): ${bond?Object.entries(bond).map(([p,sg])=>p+" in "+sg).join(", "):"n/a"}`;
 
     const text=await callClaude({
-      max_tokens:6000,
+      max_tokens:7500,
       messages:[{role:"user",content:`You are Luminary's master reader — trained in Western synastry, Vedic Ashtakoota, composite technique, and numerology. Concrete patterns first, mechanics underneath. Honest about frictions. Never fabricate scores — every number you cite must come from the computed engines below.
 
 PERSON A (${userName}): ${userPrompt}
@@ -115,14 +115,16 @@ Return ONLY raw JSON, word limits strict:
   "portrait":"who ${friendName} is — patterns, engine, what people notice (under 70 words)"
  },
  "compatibility":${mode==="chart"?"null":`{
-  "overview":"the honest read on this pairing as lived experience (under 70 words)",
-  "chemistryNarrative":"what the chemistry axes mean IN LIFE for these two — reference the strongest and weakest axis by name (under 60 words)",
-  "vedicNarrative":"what the Ashtakoota result means — name the strongest koota and any 0-score koota honestly, translate for a modern reader (under 60 words)",
+  "overview":"the honest read on this pairing as lived experience — what a fly on the wall sees when they're together (under 110 words)",
+  "youTwo":"how they actually interact day-to-day — conversation style, conflict style, who leads what, the roles they fall into (under 100 words)",
+  "destiny":"the karmic read: what these two are here to teach each other and where this goes if they let it (under 80 words)",
+  "chemistryNarrative":"what the chemistry axes mean IN LIFE — the pull, the spark, where it shows up physically and emotionally; name the strongest and weakest axis (under 90 words)",
+  "vedicNarrative":"what the Ashtakoota result means — name the strongest koota and any 0-score koota honestly, what each means for them specifically (under 90 words)",
   "numbersNarrative":"what their life path pairing means practically (under 40 words)",
-  "bondNarrative":"the composite chart: what this relationship IS as its own entity, from the Bond placements (under 50 words)",
-  "strengths":["concrete strength","strength 2","strength 3"],
-  "frictions":["honest friction","friction 2"],
-  "advice":"one concrete way to make this thrive (under 40 words)"
+  "bondNarrative":"the composite chart: what this relationship IS as its own living entity, from the Bond placements (under 80 words)",
+  "strengths":["concrete strength","strength 2","strength 3","strength 4"],
+  "frictions":["honest friction","friction 2","friction 3"],
+  "advice":"concrete guidance to make this thrive — what to do and what to avoid (under 60 words)"
  }`}
 }`}],
     });

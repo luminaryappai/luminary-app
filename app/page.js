@@ -58,6 +58,29 @@ function OrrerySVG({size=48,slow=1}){
   );
 }
 
+/* Original V6 rings, parametric — for Star Note surfaces per Mat */
+function OrreryClassic({size=440,opacity=1}){
+  const k=size/440;
+  const px=(n)=>n*k;
+  return(
+    <div style={{position:"relative",width:size,height:size,opacity}}>
+      <div style={{position:"absolute",width:px(28),height:px(28),borderRadius:"50%",top:px(206),left:px(206),background:"radial-gradient(circle,#E8C98A 0%,#BF8C3E 50%,rgba(191,140,62,0.2) 100%)",boxShadow:"0 0 30px rgba(218,176,98,0.35),0 0 60px rgba(218,176,98,0.1)"}}/>
+      <div style={{position:"absolute",borderRadius:"50%",width:px(120),height:px(120),top:px(160),left:px(160),borderWidth:Math.max(2,px(6)),borderStyle:"solid",borderColor:"rgba(196,131,106,0.18)",animation:"orb 45s linear infinite"}}>
+        <div style={{position:"absolute",borderRadius:"50%",width:px(14),height:px(14),background:P.terra,top:"-50%",left:"50%",margin:(-px(7))+"px 0 0 "+(-px(7))+"px",boxShadow:"0 0 12px rgba(196,131,106,0.5)"}}/>
+      </div>
+      <div style={{position:"absolute",borderRadius:"50%",width:px(200),height:px(200),top:px(120),left:px(120),borderWidth:Math.max(2,px(8)),borderStyle:"solid",borderColor:"rgba(122,148,104,0.14)",animation:"orb 65s linear infinite reverse"}}>
+        <div style={{position:"absolute",borderRadius:"50%",width:px(18),height:px(18),background:P.sage,top:"-50%",left:"50%",margin:(-px(9))+"px 0 0 "+(-px(9))+"px",boxShadow:"0 0 14px rgba(122,148,104,0.4)"}}/>
+      </div>
+      <div style={{position:"absolute",borderRadius:"50%",width:px(300),height:px(300),top:px(70),left:px(70),borderWidth:Math.max(1.5,px(5)),borderStyle:"solid",borderColor:"rgba(141,128,184,0.10)",animation:"orb 90s linear infinite"}}>
+        <div style={{position:"absolute",borderRadius:"50%",width:px(12),height:px(12),background:P.violet,top:"-50%",left:"50%",margin:(-px(6))+"px 0 0 "+(-px(6))+"px",boxShadow:"0 0 10px rgba(141,128,184,0.4)"}}/>
+      </div>
+      <div style={{position:"absolute",borderRadius:"50%",width:px(400),height:px(400),top:px(20),left:px(20),borderWidth:Math.max(1,px(3)),borderStyle:"solid",borderColor:"rgba(191,140,62,0.06)",animation:"orb 120s linear infinite reverse"}}>
+        <div style={{position:"absolute",borderRadius:"50%",width:px(8),height:px(8),background:P.gold,opacity:0.5,top:"-50%",left:"50%",margin:(-px(4))+"px 0 0 "+(-px(4))+"px",boxShadow:"0 0 8px rgba(191,140,62,0.3)"}}/>
+      </div>
+    </div>
+  );
+}
+
 function Orrery(){
   return(
     <div style={{position:"absolute",top:-60,right:-120,width:440,height:440,zIndex:1,opacity:0,transform:"scale(0.5) rotate(-40deg)",animation:"orrIn 2.2s cubic-bezier(0.16,1,0.3,1) 0.1s forwards"}}>
@@ -286,7 +309,7 @@ function ReadingScreen({chart,reading,name,onChat,onReset,onShareable}){
       {reading.line&&(
         <div onClick={onShareable} style={{background:"linear-gradient(135deg,#F5EDE0 0%,#F6EDD9 55%,#F5EBE5 100%)",border:"1px solid rgba(191,140,62,0.14)",borderRadius:14,padding:"26px 20px",position:"relative",overflow:"hidden",cursor:"pointer",boxShadow:SH3}}>
         <div style={{position:"absolute",top:-30,right:-20,width:160,height:160,background:"radial-gradient(circle,rgba(191,140,62,0.1) 0%,transparent 55%)"}}/>
-          <div style={{position:"absolute",top:-70,right:-110,width:380,height:380,opacity:0.32,pointerEvents:"none"}}><OrrerySVG size={380} slow={3}/></div>
+          <div style={{position:"absolute",top:-70,right:-110,width:380,height:380,pointerEvents:"none"}}><OrreryClassic size={380} opacity={0.55}/></div>
           <div style={{fontFamily:SN,fontSize:6,letterSpacing:3,color:P.lt,textTransform:"uppercase",marginBottom:10}}>luminary · star note</div>
           <blockquote style={{fontFamily:SR,fontSize:17,fontWeight:300,color:P.ink,lineHeight:1.58,margin:0,fontStyle:"italic",position:"relative",zIndex:1,maxWidth:"85%"}}>"{reading.line}"</blockquote>
           <div style={{marginTop:14,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
@@ -475,7 +498,7 @@ function ShareableScreen({reading,name,chart,onBack}){
       <div style={{width:"100%",maxWidth:300,aspectRatio:"9/16",background:"linear-gradient(160deg,#F5EDE0 0%,#F6EDD9 60%,#F5EBE5 100%)",border:"1px solid rgba(191,140,62,0.1)",borderRadius:16,overflow:"hidden",position:"relative",display:"flex",flexDirection:"column",justifyContent:"center",padding:"36px 22px",boxShadow:"0 8px 32px rgba(42,33,24,0.08)"}}>
         <div style={{position:"absolute",top:18,left:22,fontFamily:SN,fontSize:7,letterSpacing:4,color:P.fn,textTransform:"uppercase"}}>luminary</div>
         <div style={{position:"absolute",top:36,left:22,right:22,height:1,background:"linear-gradient(90deg,rgba(191,140,62,0.2),transparent)"}}/>
-        <div style={{position:"absolute",top:-60,right:-120,width:440,height:440,opacity:0.35,pointerEvents:"none"}}><OrrerySVG size={440} slow={3}/></div>
+        <div style={{position:"absolute",top:-60,right:-120,width:440,height:440,pointerEvents:"none"}}><OrreryClassic size={440} opacity={0.55}/></div>
         <blockquote style={{fontFamily:SR,fontSize:18,fontWeight:300,color:P.ink,lineHeight:1.58,margin:0,fontStyle:"italic",zIndex:1}}>"{reading.line}"</blockquote>
         <div style={{position:"absolute",bottom:22,left:22,right:22,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
           <div>
@@ -682,6 +705,8 @@ function FriendsScreen({userChart,userName,userBirth,friends,setFriends,ukey,pos
                 </div>}
                 {c&&<>
                   <p style={{fontFamily:SR,fontSize:14,color:P.mid,fontStyle:"italic",lineHeight:1.7,marginBottom:12}}>{c.overview}</p>
+                  {c.youTwo&&<div style={{marginBottom:12}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.gold,textTransform:"uppercase",fontWeight:500,marginBottom:6}}>You Two</div><p style={{fontFamily:SR,fontSize:13,color:P.mid,fontStyle:"italic",lineHeight:1.68}}>{c.youTwo}</p></div>}
+                  {c.destiny&&<div style={{marginBottom:12}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.violet,textTransform:"uppercase",fontWeight:500,marginBottom:6}}>Destiny</div><p style={{fontFamily:SR,fontSize:13,color:P.mid,fontStyle:"italic",lineHeight:1.68}}>{c.destiny}</p></div>}
                   {r.computed&&r.computed.chemistry&&(
                     <div style={{background:P.card,border:"1px solid rgba(196,131,106,0.15)",borderRadius:12,padding:"14px 16px",marginBottom:10}}>
                       <div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.terra,textTransform:"uppercase",fontWeight:500,marginBottom:10}}>Chemistry</div>
@@ -738,6 +763,58 @@ function FriendsScreen({userChart,userName,userBirth,friends,setFriends,ukey,pos
         );
       })}
       <button onClick={onChat} style={{position:"fixed",right:0,top:"44%",zIndex:100,fontFamily:SN,fontSize:10,fontWeight:500,letterSpacing:2,color:"#FAF6F0",background:P.ink,border:"none",padding:"16px 9px",borderRadius:"14px 0 0 14px",cursor:"pointer",boxShadow:"-3px 3px 16px rgba(42,33,24,0.2)",writingMode:"vertical-rl",textOrientation:"mixed"}}>✦ Ask</button>
+    </div>
+  );
+}
+
+/* ═══ FEEDBACK — bugs & improvements, with speech-to-text ═══ */
+function FeedbackScreen({name,ukey}){
+  const[kind,setKind]=useState("improvement");
+  const[text,setText]=useState("");
+  const[listening,setListening]=useState(false);
+  const[done,setDone]=useState(false);
+  const[fbErr,setFbErr]=useState(null);
+  const recRef=useRef(null);const baseRef=useRef("");
+  const toggleMic=()=>{
+    if(listening){try{recRef.current&&recRef.current.stop();}catch{}setListening(false);return;}
+    const SRec=typeof window!=="undefined"?(window.SpeechRecognition||window.webkitSpeechRecognition):null;
+    if(!SRec){setFbErr("Dictation isn't supported in this browser — use the mic key on your keyboard instead.");return;}
+    setFbErr(null);baseRef.current=text?text+" ":"";
+    const r=new SRec();r.continuous=true;r.interimResults=true;r.lang="en-US";
+    r.onresult=(e)=>{let t="";for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;setText(baseRef.current+t);};
+    r.onend=()=>setListening(false);
+    r.onerror=()=>{setListening(false);};
+    recRef.current=r;r.start();setListening(true);
+  };
+  const submit=async()=>{
+    if(!text.trim()){setFbErr("Say or type something first.");return;}
+    try{
+      await fetch("/api/user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"feedback",key:ukey,name,kind,text})});
+      setDone(true);setText("");setTimeout(()=>setDone(false),3000);
+    }catch{setFbErr("Couldn't send — try again.");}
+  };
+  const kb=(k,l)=>(<button onClick={()=>setKind(k)} style={{flex:1,fontFamily:SN,fontSize:10,padding:"9px 6px",borderRadius:12,cursor:"pointer",border:"1.5px solid "+(kind===k?"rgba(191,140,62,0.4)":P.bdr),background:kind===k?P.goldBg:P.card,color:kind===k?P.gold:P.lt,fontWeight:kind===k?500:300}}>{l}</button>);
+  return(
+    <div style={{minHeight:"100%",background:P.bg,padding:"28px 18px 100px"}}>
+      <style>{V6CSS}</style>
+      <div style={{textAlign:"center",marginBottom:20}}>
+        <div style={{fontFamily:SN,fontSize:8,letterSpacing:4,color:P.gold,textTransform:"uppercase",marginBottom:10,opacity:0.5}}>help shape luminary</div>
+        <h2 style={{fontFamily:SR,fontSize:32,fontWeight:300,color:P.ink,margin:0,lineHeight:1.1}}>Tell us everything</h2>
+        <p style={{fontFamily:SR,fontSize:13,color:P.lt,fontStyle:"italic",marginTop:6}}>Bugs, ideas, wishes — tap the mic and just talk.</p>
+      </div>
+      <div style={{background:P.card,border:"1px solid "+P.bdr,borderRadius:14,padding:18,boxShadow:SH}}>
+        <div style={{display:"flex",gap:6,marginBottom:12}}>
+          {kb("bug","🐛 Bug")}
+          {kb("improvement","✨ Improvement")}
+          {kb("love","💛 Love it")}
+        </div>
+        <div style={{position:"relative"}}>
+          <textarea value={text} onChange={e=>setText(e.target.value)} placeholder={listening?"Listening — just talk...":"What happened, or what do you wish existed?"} rows={6} style={{width:"100%",padding:"14px 16px",paddingRight:52,borderRadius:12,border:"1.5px solid "+(listening?"rgba(196,131,106,0.5)":P.bdr),background:listening?"#FDF9F4":P.bg,fontSize:14,fontFamily:SN,color:P.ink,outline:"none",resize:"vertical",boxSizing:"border-box",lineHeight:1.6}}/>
+          <button onClick={toggleMic} style={{position:"absolute",right:10,top:10,width:38,height:38,borderRadius:19,border:"none",cursor:"pointer",fontSize:16,background:listening?P.terra:P.goldBg,color:listening?"#FFF":P.gold,boxShadow:listening?"0 0 0 4px rgba(196,131,106,0.2)":"none"}}>{listening?"■":"🎤"}</button>
+        </div>
+        {fbErr&&<p style={{fontFamily:SN,fontSize:11,color:P.terra,marginTop:8}}>{fbErr}</p>}
+        <button onClick={submit} style={{width:"100%",fontFamily:SN,fontSize:11,fontWeight:500,letterSpacing:1,color:"#FAF6F0",background:done?P.sage:P.ink,border:"none",padding:"13px",borderRadius:12,cursor:"pointer",marginTop:12}}>{done?"✓ Sent — thank you":"Send feedback"}</button>
+      </div>
     </div>
   );
 }
@@ -807,7 +884,7 @@ export default function Luminary(){
   const reset=()=>{try{localStorage.removeItem("luminary_user");}catch{}
     setBd(null);setAns(null);setChart(null);setReading(null);setBca(null);setErr(null);setUkey(null);setChatMsgs(null);setFriends([]);setScr("landing");};
 
-  const navItems=[{id:"landing",l:"Home"},{id:"reading",l:"Reading"},{id:"birthchart",l:"Birth Chart"},{id:"humandesign",l:"Design"},{id:"shareable",l:"Star Note"},{id:"chat",l:"✦ Ask"},{id:"friends",l:"Friends"}];
+  const navItems=[{id:"landing",l:"Home"},{id:"reading",l:"Reading"},{id:"birthchart",l:"Birth Chart"},{id:"humandesign",l:"Design"},{id:"shareable",l:"Star Note"},{id:"chat",l:"✦ Ask"},{id:"friends",l:"Friends"},{id:"feedback",l:"Feedback"}];
   const navBtn=(id)=>({fontFamily:SN,fontSize:9,border:"none",padding:"5px 8px",borderRadius:5,cursor:"pointer",background:scr===id?P.warm:"transparent",color:scr===id?P.ink:P.fn});
   const navGo=(id)=>{
     if(id==="landing")setScr(chart?"reading":"landing");
@@ -817,6 +894,7 @@ export default function Luminary(){
     else if(id==="shareable"&&reading)setScr("shareable");
     else if(id==="chat"&&chart)setScr("chat");
     else if(id==="friends"&&chart)setScr("friends");
+    else if(id==="feedback")setScr("feedback");
   };
 
   return(
@@ -837,6 +915,7 @@ export default function Luminary(){
         {scr==="humandesign"&&chart&&<HDScreen chart={chart} analysis={bca} name={bd?.name||""} onChat={()=>setScr("chat")}/>}
         {scr==="shareable"&&reading&&chart&&<ShareableScreen reading={reading} name={bd?.name||""} chart={chart} onBack={()=>setScr("reading")}/>}
         {scr==="friends"&&chart&&<FriendsScreen userChart={chart} userName={bd?.name||""} userBirth={bd?.date||null} friends={friends} setFriends={setFriends} ukey={ukey} post={post} onChat={()=>setScr("chat")}/>}
+        {scr==="feedback"&&<FeedbackScreen name={bd?.name||""} ukey={ukey}/>}
         {scr==="chat"&&chart&&<ChatScreen chart={chart} name={bd?.name||""} onBack={()=>setScr("reading")} userKey={ukey} initialMsgs={chatMsgs} onSync={setChatMsgs}/>}
         {scr==="error"&&(
           <div style={{flex:1,background:P.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:40,textAlign:"center"}}>

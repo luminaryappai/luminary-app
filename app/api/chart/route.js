@@ -1,5 +1,6 @@
 import * as Astronomy from "astronomy-engine";
 import { NextResponse } from "next/server";
+import tzlookup from "tz-lookup";
 
 const SIGNS=["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
 const GLYPHS={"Aries":"♈","Taurus":"♉","Gemini":"♊","Cancer":"♋","Leo":"♌","Virgo":"♍","Libra":"♎","Scorpio":"♏","Sagittarius":"♐","Capricorn":"♑","Aquarius":"♒","Pisces":"♓"};
@@ -17,14 +18,31 @@ function calcAscendant(time,lat,lon){
   asc=asc*180/Math.PI;if(asc<0)asc+=360;
   return asc;
 }
+function tzOffsetMin(tz,dateUTC){
+  const dtf=new Intl.DateTimeFormat("en-US",{timeZone:tz,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
+  const p=dtf.formatToParts(dateUTC).reduce((a,x)=>(a[x.type]=x.value,a),{});
+  return(Date.UTC(p.year,p.month-1,p.day,p.hour%24,p.minute,p.second)-dateUTC.getTime())/60000;
+}
+
 function birthToUTC(dateStr,timeStr,lat,lon){
   const[y,m,d]=dateStr.split("-").map(Number);
-  let h=12,mi=0;
   const unknownTime=!timeStr||timeStr==="unknown";
-  if(!unknownTime){const p=timeStr.split(":");h=parseInt(p[0]);mi=parseInt(p[1]||0);}
-  const tzOffsetHours=Math.round(lon/15);
-  const utcH=h-tzOffsetHours;
-  return{date:Astronomy.MakeTime(new Date(Date.UTC(y,m-1,d,utcH,mi,0))),unknownTime};
+  const[h,mi]=unknownTime?[12,0]:timeStr.split(":").map(Number);
+  /* Real IANA timezone from coordinates — historical DST handled by Intl/ICU.
+     (Old flat lon/15 offset ignored DST: 1h error on every DST birth.) */
+  let utcMs;
+  try{
+    const tz=tzlookup(lat,lon);
+    const naive=Date.UTC(y,m-1,d,h,mi,0);
+    let off=tzOffsetMin(tz,new Date(naive));
+    utcMs=naive-off*60000;
+    off=tzOffsetMin(tz,new Date(utcMs)); /* second pass pins DST boundary cases */
+    utcMs=naive-off*60000;
+  }catch(e){
+    const tzOffsetHours=Math.round(lon/15);
+    utcMs=Date.UTC(y,m-1,d,h-tzOffsetHours,mi,0);
+  }
+  return{date:Astronomy.MakeTime(new Date(utcMs)),unknownTime};
 }
 
 const BODIES=["Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"];
@@ -106,9 +124,20 @@ function findDesignTime(birthTime){
 }
 
 function meanLunarNode(time){
-  /* Mean node: 125.04452 - 0.05295376 * days since J2000. Matches Mat's natal 24° Libra NN to <1°. */
   const d=(time.date.getTime()-Date.UTC(2000,0,1,12,0,0))/86400000;
   return(((125.04452-0.05295376*d)%360)+360)%360;
+}
+
+function trueNodeLon(time){
+  /* Osculating (True) Node from lunar state vectors — matches Swiss Ephemeris True Node */
+  try{
+    const st=Astronomy.GeoMoonState(time);
+    const rot=Astronomy.Rotation_EQJ_ECL();
+    const r=Astronomy.RotateVector(rot,new Astronomy.Vector(st.x,st.y,st.z,time));
+    const v=Astronomy.RotateVector(rot,new Astronomy.Vector(st.vx,st.vy,st.vz,time));
+    const hx=r.y*v.z-r.z*v.y, hy=r.z*v.x-r.x*v.z;
+    let n=Math.atan2(hx,-hy)*180/Math.PI;if(n<0)n+=360;return n;
+  }catch(e){return meanLunarNode(time);}
 }
 
 function calcHumanDesign(birthTime){
@@ -125,9 +154,9 @@ function calcHumanDesign(birthTime){
     if(b==="Sun"){const eg=lonToGate((dl+180)%360);dGates.push(eg.gate);}
   }
   /* North + South Nodes — full 13 activations per side (missing these caused the Projector/MG bug) */
-  const pN=meanLunarNode(birthTime);
+  const pN=trueNodeLon(birthTime);
   pGates.push(lonToGate(pN).gate);pGates.push(lonToGate((pN+180)%360).gate);
-  const dN=meanLunarNode(designTime);
+  const dN=trueNodeLon(designTime);
   dGates.push(lonToGate(dN).gate);dGates.push(lonToGate((dN+180)%360).gate);
   const allGates=[...new Set([...pGates,...dGates])];
   /* Defined channels */

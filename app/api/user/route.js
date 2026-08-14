@@ -40,6 +40,16 @@ export async function POST(req){
       const snap=await users.doc(body.key).get();
       return snap.exists?NextResponse.json(snap.data()):NextResponse.json({error:"not found"},{status:404});
     }
+    if(action==="feedback"){
+      const{key,name,kind,text}=body;
+      if(!text||!text.trim())return NextResponse.json({error:"empty"},{status:400});
+      await db.collection("feedback").add({key:key||null,name:name||"anonymous",kind:kind||"general",text:text.trim(),ts:Date.now()});
+      return NextResponse.json({ok:true});
+    }
+    if(action==="listFeedback"){
+      const snap=await db.collection("feedback").orderBy("ts","desc").limit(50).get();
+      return NextResponse.json({feedback:snap.docs.map(d=>d.data())});
+    }
     if(action==="saveFriends"){
       const{key,friends}=body;
       if(!key)return NextResponse.json({error:"no key"},{status:400});

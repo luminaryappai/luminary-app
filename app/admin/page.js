@@ -4,7 +4,9 @@ const P={bg:"#FAF6F0",card:"#FFFFFF",ink:"#2A2118",mid:"#6B5D50",light:"#A09282"
 const F={serif:"'Cormorant Garamond',Georgia,serif",sans:"'DM Sans',-apple-system,sans-serif"};
 export default function Admin(){
   const[pw,setPw]=useState("");const[ok,setOk]=useState(false);const[users,setUsers]=useState([]);const[loading,setLoading]=useState(false);const[sel,setSel]=useState(null);
-  const load=async()=>{setLoading(true);try{const r=await fetch("/api/user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"list",mk:"fateh0505"})});const d=await r.json();setUsers(d.users||[]);}catch{}setLoading(false);};
+  const[fb,setFb]=useState([]);
+  const loadFb=async()=>{try{const r=await fetch("/api/user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"listFeedback"})});const d=await r.json();setFb(d.feedback||[]);}catch{}};
+  const load=async()=>{loadFb();setLoading(true);try{const r=await fetch("/api/user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"list",mk:"fateh0505"})});const d=await r.json();setUsers(d.users||[]);}catch{}setLoading(false);};
   if(!ok)return(<div style={{minHeight:"100vh",background:P.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
     <p style={{fontFamily:F.sans,fontSize:9,letterSpacing:4,color:P.light,marginBottom:16}}>LUMINARY ADMIN</p>
     <input type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&pw==="84245577"){setOk(true);load();}}} placeholder="Password" style={{padding:"12px 16px",borderRadius:8,border:"1px solid "+P.border,fontSize:16,textAlign:"center",width:200,fontFamily:F.sans}}/>
@@ -33,6 +35,19 @@ export default function Admin(){
     </div>
     <p style={{fontFamily:F.serif,fontSize:24,color:P.ink,marginBottom:16}}>{users.length} readings</p>
     {loading&&<p style={{color:P.light}}>Loading...</p>}
+    {fb.length>0&&(
+      <div style={{background:"#FFF",border:"1px solid rgba(42,33,24,0.08)",borderRadius:12,padding:16,marginBottom:16}}>
+        <div style={{fontFamily:F.sans,fontSize:10,letterSpacing:2,color:P.gold,textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Feedback ({fb.length})</div>
+        {fb.slice(0,20).map((f,i)=>(
+          <div key={i} style={{padding:"8px 0",borderBottom:i<Math.min(fb.length,20)-1?"1px solid rgba(42,33,24,0.05)":"none"}}>
+            <div style={{fontFamily:F.sans,fontSize:11,color:P.mid,marginBottom:2}}>
+              <b>{f.name}</b> · {f.kind} · {new Date(f.ts).toLocaleDateString()} {new Date(f.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+            </div>
+            <div style={{fontFamily:F.sans,fontSize:12,color:P.ink,lineHeight:1.5}}>{f.text}</div>
+          </div>
+        ))}
+      </div>
+    )}
     {users.map((u,i)=>(
       <div key={i} onClick={()=>setSel(u)} style={{background:P.card,borderRadius:10,padding:"14px 16px",marginBottom:8,border:"1px solid "+P.border,cursor:"pointer"}}>
         <p style={{fontFamily:F.sans,fontSize:14,fontWeight:600,color:P.ink}}>{u.name} <span style={{fontSize:11,color:P.gold}}>{u.ig?"@"+u.ig:""}</span></p>
