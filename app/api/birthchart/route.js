@@ -1,42 +1,79 @@
 import { NextResponse } from "next/server";
 
+const MODELS=["claude-sonnet-4-5","claude-sonnet-4-20250514","claude-3-5-sonnet-20241022"];
+
+function extractJSON(text){
+  if(!text||!text.trim())throw new Error("Empty response from AI");
+  let t=text.replace(/```json/gi,"").replace(/```/g,"").trim();
+  const s=t.indexOf("{");
+  if(s===-1)throw new Error("No JSON in AI response");
+  t=t.slice(s);
+  try{return JSON.parse(t);}catch(e){
+    let depth=0,inStr=false,esc=false,lastGood=-1;
+    for(let i=0;i<t.length;i++){
+      const c=t[i];
+      if(esc){esc=false;continue;}
+      if(c==="\\"){esc=true;continue;}
+      if(c==='"'){inStr=!inStr;continue;}
+      if(inStr)continue;
+      if(c==="{"||c==="[")depth++;
+      else if(c==="}"||c==="]"){depth--;if(depth===0)lastGood=i;}
+    }
+    if(lastGood>0){try{return JSON.parse(t.slice(0,lastGood+1));}catch{}}
+    throw new Error("AI returned malformed JSON (likely truncated)");
+  }
+}
+
+async function callClaude(payload){
+  if(!process.env.ANTHROPIC_API_KEY)throw new Error("ANTHROPIC_API_KEY is not set on the server");
+  let lastErr=null;
+  for(const model of MODELS){
+    try{
+      const r=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":process.env.ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01"},
+        body:JSON.stringify({...payload,model}),
+      });
+      const raw=await r.text();
+      if(!r.ok){lastErr=new Error("Anthropic API "+r.status+": "+raw.slice(0,300));continue;}
+      const data=JSON.parse(raw);
+      if(data.error)throw new Error("Anthropic error: "+(data.error.message||""));
+      const text=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
+      if(!text)throw new Error("Anthropic returned no text content");
+      return text;
+    }catch(e){lastErr=e;}
+  }
+  throw lastErr||new Error("All model attempts failed");
+}
+
 export async function POST(req){
   try{
     const{chartText,name}=await req.json();
-    const response=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":process.env.ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01"},
-      body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",max_tokens:2500,
-        messages:[{role:"user",content:`You are Luminary's master reader. Your register: lead with CONCRETE PREDICTED EVENTS, DATES, and JOY — the mechanics live underneath, available but never on top. Structure every section: headline sentence first → near-term dated triggers → domain-by-domain event predictions → the delight. Confidence tiers: tight-orb and angle-based statements are made confidently with specific timeframes; sign-level material is stated as weather. Never lead with process-language or planet jargon — the event comes first, the astrology explains it after. Speak like a rigorous astrologer who has studied this exact chart for hours: direct, specific, zero fluff, warmly certain.
+    const text=await callClaude({
+      max_tokens:4000,
+      messages:[{role:"user",content:`You are Luminary's master reader. Your register: lead with CONCRETE PREDICTED EVENTS, DATES, and JOY; mechanics live underneath, never on top. Confidence tiers: tight-orb and angle-based statements stated confidently with timeframes; sign-level material stated as weather. Never lead with planet jargon — the event comes first, the astrology explains it after. Direct, specific, zero fluff, warmly certain.
 
 Chart for ${name}: ${chartText}
 
-Return ONLY raw JSON (no markdown, no backticks):
+Return ONLY raw JSON, no markdown, no preamble. Keep each field under 70 words so the JSON completes:
 {
-  "bigThree": "One paragraph. Lead with what ${name}'s LIFE looks like because of this combination — the actual patterns, the recurring events, what people say about them. The Sun/Moon/Rising mechanics come second, woven in as explanation.",
-  "headline": "The single most important thing this chart says is coming for ${name} — a concrete prediction with a timeframe. This is the sentence they remember.",
-  "chapters": [
-    {"title": "short chapter name", "body": "What is happening in this life domain RIGHT NOW and what happens next. Concrete events, likely dates or windows, then the transit mechanics underneath in one sentence."},
-    {"title": "chapter 2", "body": "same structure"},
-    {"title": "chapter 3", "body": "same structure"}
-  ],
-  "humanDesign": {
-    "type": "their HD type from the chart data",
-    "opener": "One paragraph explaining their Type/Strategy/Authority as LIVED EXPERIENCE — what their best decisions have in common, what their worst decisions have in common, how energy actually moves through their day. Concrete, recognizable, zero HD jargon until the second half.",
-    "decisionRule": "One sentence: the practical decision-making rule this person should follow, stated as an instruction."
-  },
-  "strengths": ["strength as a concrete life pattern","strength 2","strength 3"],
-  "shadowWork": "The one pattern that costs them the most, stated plainly with compassion, and the specific window when it tends to activate.",
-  "soulMantra": "A mantra that captures this chart's assignment. Short, ancestral, worth writing down."
+ "headline":"the single most important concrete prediction with a timeframe",
+ "bigThree":"what their LIFE looks like because of this combination — patterns, recurring events, what people say about them",
+ "chapters":[
+  {"title":"chapter name","body":"what is happening now in this domain and what happens next, with dated windows"},
+  {"title":"chapter 2","body":"same"},
+  {"title":"chapter 3","body":"same"}
+ ],
+ "humanDesign":{"type":"their HD type from the chart data","opener":"their Type/Strategy/Authority as LIVED EXPERIENCE — what their best and worst decisions have in common","decisionRule":"one sentence instruction"},
+ "strengths":["concrete life pattern","pattern 2","pattern 3"],
+ "shadowWork":"the one pattern that costs them most, with the window it activates",
+ "soulMantra":"short ancestral mantra"
 }
-
-CRITICAL: If the chart data includes Human Design info, use the actual Type/Strategy/Authority/Profile given. Every prediction must trace to THEIR specific placements. Events first, mechanics second, always.`}],
-      }),
+Use the actual Human Design values given. Every prediction traces to THEIR placements.`}],
     });
-    const data=await response.json();
-    let text=data.content?.[0]?.text||"";
-    text=text.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim();
-    return NextResponse.json(JSON.parse(text));
-  }catch(e){console.error("Birthchart error:",e);return NextResponse.json({error:e.message},{status:500});}
+    return NextResponse.json(extractJSON(text));
+  }catch(e){
+    console.error("Birthchart error:",e);
+    return NextResponse.json({error:e.message},{status:500});
+  }
 }

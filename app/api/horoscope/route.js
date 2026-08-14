@@ -1,46 +1,87 @@
 import { NextResponse } from "next/server";
 
+const MODELS=["claude-sonnet-4-5","claude-sonnet-4-20250514","claude-3-5-sonnet-20241022"];
+
+function extractJSON(text){
+  if(!text||!text.trim())throw new Error("Empty response from AI");
+  let t=text.replace(/```json/gi,"").replace(/```/g,"").trim();
+  const s=t.indexOf("{");
+  if(s===-1)throw new Error("No JSON in AI response: "+t.slice(0,200));
+  t=t.slice(s);
+  try{return JSON.parse(t);}catch(e){
+    // Truncated: close open braces/brackets
+    let depth=0,inStr=false,esc=false,lastGood=-1;
+    for(let i=0;i<t.length;i++){
+      const c=t[i];
+      if(esc){esc=false;continue;}
+      if(c==="\\"){esc=true;continue;}
+      if(c==='"'){inStr=!inStr;continue;}
+      if(inStr)continue;
+      if(c==="{"||c==="[")depth++;
+      else if(c==="}"||c==="]"){depth--;if(depth===0)lastGood=i;}
+    }
+    if(lastGood>0){try{return JSON.parse(t.slice(0,lastGood+1));}catch{}}
+    throw new Error("AI returned malformed JSON (likely truncated)");
+  }
+}
+
+async function callClaude(payload){
+  if(!process.env.ANTHROPIC_API_KEY)throw new Error("ANTHROPIC_API_KEY is not set on the server");
+  let lastErr=null;
+  for(const model of MODELS){
+    try{
+      const r=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":process.env.ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01"},
+        body:JSON.stringify({...payload,model}),
+      });
+      const raw=await r.text();
+      if(!r.ok){lastErr=new Error("Anthropic API "+r.status+": "+raw.slice(0,300));continue;}
+      let data;try{data=JSON.parse(raw);}catch{throw new Error("Anthropic returned non-JSON: "+raw.slice(0,200));}
+      if(data.error)throw new Error("Anthropic error: "+(data.error.message||JSON.stringify(data.error)));
+      const text=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
+      if(!text)throw new Error("Anthropic returned no text content");
+      return text;
+    }catch(e){lastErr=e;}
+  }
+  throw lastErr||new Error("All model attempts failed");
+}
+
 export async function POST(req){
   try{
     const{chartText,name,focus,energy,seeking}=await req.json();
-    const response=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":process.env.ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01"},
-      body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",max_tokens:3000,
-        messages:[{role:"user",content:`You are Luminary, a warm and insightful AI astrologer. You speak like a wise friend who understands the stars deeply. Empathetic, specific, grounded. No jargon without translation. No degree symbols. Lead with feelings, then explain astrologically.
+    const text=await callClaude({
+      max_tokens:4000,
+      messages:[{role:"user",content:`You are Luminary, a warm and insightful AI astrologer. You speak like a wise friend who understands the stars deeply. Empathetic, specific, grounded. No jargon without translation. No degree symbols. Lead with feelings, then explain astrologically.
 
 Chart data for ${name}: ${chartText}
 Life focus: ${focus}. Energy: ${energy}. Seeking: ${seeking}.
 
-Generate a COMPLETE personalized reading. Return ONLY raw JSON (no markdown, no backticks):
+Return ONLY raw JSON, no markdown, no preamble. Keep every "body" under 45 words so the JSON completes:
 {
-  "weekly": [
-    {"area": "This Week's Energy", "planet": "♄", "title": "short evocative title", "body": "2-3 sentences deeply personal insight tied to their specific transits.", "intensity": 8},
-    {"area": "Love & Connection", "planet": "♀", "title": "title", "body": "insight", "intensity": 7},
-    {"area": "Career & Purpose", "planet": "☉", "title": "title", "body": "insight", "intensity": 6},
-    {"area": "Inner World", "planet": "☽", "title": "title", "body": "insight", "intensity": 5}
-  ],
-  "monthly": [
-    {"area": "The Big Picture", "planet": "♃", "title": "title", "body": "2-3 sentences on the month ahead", "intensity": 7},
-    {"area": "Growth Edge", "planet": "♄", "title": "title", "body": "insight", "intensity": 6},
-    {"area": "Hidden Gift", "planet": "♆", "title": "title", "body": "insight", "intensity": 5}
-  ],
-  "transits": [
-    {"transit": "Transit Planet aspect Natal Planet", "orb": "X°", "meaning": "What this means for them personally", "peak": "approximate peak date", "intensity": 8},
-    {"transit": "next", "orb": "X°", "meaning": "meaning", "peak": "date", "intensity": 6}
-  ],
-  "bigThreeTexts": ["2-3 sentence italic-worthy portrait of their Sun placement","same for Moon","same for Rising"],
-  "line": "One powerful sentence — their most important insight. The thing they screenshot and share.",
-  "mantra": "A personal mantra for this week based on their element and current transits."
+ "weekly":[
+  {"area":"This Week's Energy","planet":"♄","title":"short title","body":"insight","intensity":8},
+  {"area":"Love & Connection","planet":"♀","title":"title","body":"insight","intensity":7},
+  {"area":"Career & Purpose","planet":"☉","title":"title","body":"insight","intensity":6},
+  {"area":"Inner World","planet":"☽","title":"title","body":"insight","intensity":5}
+ ],
+ "monthly":[
+  {"area":"The Big Picture","planet":"♃","title":"title","body":"insight","intensity":7},
+  {"area":"Growth Edge","planet":"♄","title":"title","body":"insight","intensity":6},
+  {"area":"Hidden Gift","planet":"♆","title":"title","body":"insight","intensity":5}
+ ],
+ "transits":[
+  {"transit":"Transit X aspect natal Y","orb":"2°","meaning":"what it means","peak":"date","intensity":8}
+ ],
+ "bigThreeTexts":["Sun portrait","Moon portrait","Rising portrait"],
+ "line":"one screenshot-worthy sentence",
+ "mantra":"personal mantra"
 }
-
-CRITICAL: Every insight references THEIR specific placements and transits. The transits array should have 4-6 entries with real intensity scores. The "line" should stop someone mid-scroll.`}],
-      }),
+Include 4 transits. Every insight must reference THEIR specific placements.`}],
     });
-    const data=await response.json();
-    let text=data.content?.[0]?.text||"";
-    text=text.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim();
-    return NextResponse.json(JSON.parse(text));
-  }catch(e){console.error("Horoscope error:",e);return NextResponse.json({error:e.message},{status:500});}
+    return NextResponse.json(extractJSON(text));
+  }catch(e){
+    console.error("Horoscope error:",e);
+    return NextResponse.json({error:e.message},{status:500});
+  }
 }

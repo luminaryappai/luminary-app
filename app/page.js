@@ -427,11 +427,18 @@ export default function Luminary(){
   const[chart,setChart]=useState(null);const[reading,setReading]=useState(null);
   const[bca,setBca]=useState(null);const[err,setErr]=useState(null);const[ukey,setUkey]=useState(null);
 
+  const post=async(url,body)=>{
+    const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const raw=await r.text();
+    let d;try{d=JSON.parse(raw);}catch{throw new Error(url+" returned an unreadable response ("+r.status+"): "+raw.slice(0,180));}
+    if(d.error)throw new Error(d.error);
+    if(!r.ok)throw new Error(url+" failed with status "+r.status);
+    return d;
+  };
+
   const generate=async(b,a)=>{setScr("loading");try{
-    const cr=await fetch("/api/chart",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
-    const ch=await cr.json();if(ch.error)throw new Error(ch.error);setChart(ch);
-    const hr=await fetch("/api/horoscope",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chartText:ch.promptText,name:b.name,...a})});
-    const ho=await hr.json();if(ho.error)throw new Error(ho.error);setReading(ho);
+    const ch=await post("/api/chart",b);setChart(ch);
+    const ho=await post("/api/horoscope",{chartText:ch.promptText,name:b.name,...a});setReading(ho);
     const k=(b.ig||b.name||"anon").toLowerCase().replace(/[@\s]+/g,"-").replace(/[^a-z0-9-]/g,"");setUkey(k);
     saveReading({name:b.name,ig:b.ig,chart:ch,reading:ho,answers:a});
     setScr("reading");
@@ -441,9 +448,9 @@ export default function Luminary(){
     if(!chart)return;
     setScr("birthchart");
     if(bca)return;
-    try{const r=await fetch("/api/birthchart",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chartText:chart.promptText,name:bd.name})});
-      const d=await r.json();if(!d.error){setBca(d);saveReading({name:bd.name,ig:bd.ig,chart,reading,answers:ans,birthchartAnalysis:d});}
-    }catch(e){console.error(e);}};
+    try{const d=await post("/api/birthchart",{chartText:chart.promptText,name:bd.name});
+      setBca(d);saveReading({name:bd.name,ig:bd.ig,chart,reading,answers:ans,birthchartAnalysis:d});
+    }catch(e){console.error(e);setBca({headline:"Couldn't load this reading.",bigThree:String(e.message||e)});}};
 
   const reset=()=>{setBd(null);setAns(null);setChart(null);setReading(null);setBca(null);setErr(null);setUkey(null);setScr("landing");};
 
@@ -478,7 +485,7 @@ export default function Luminary(){
         {scr==="error"&&(
           <div style={{flex:1,background:P.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:40,textAlign:"center"}}>
             <p style={{fontFamily:SR,fontSize:22,fontWeight:300,color:P.ink,marginBottom:8}}>Something went wrong</p>
-            <p style={{fontFamily:SN,fontSize:13,color:P.lt,marginBottom:20}}>{err}</p>
+            <p style={{fontFamily:SN,fontSize:12,color:P.lt,marginBottom:20,maxWidth:340,wordBreak:"break-word",userSelect:"text",lineHeight:1.5}}>{err}</p>
             <button onClick={()=>generate(bd,ans)} style={{padding:"12px 28px",background:P.ink,color:"#FFF",border:"none",borderRadius:20,cursor:"pointer",fontFamily:SN,fontSize:11,marginBottom:8}}>Try Again</button>
             <button onClick={reset} style={{background:"none",border:"none",color:P.lt,cursor:"pointer",fontFamily:SN,fontSize:11}}>Start Over</button>
           </div>
