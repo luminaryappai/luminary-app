@@ -40,6 +40,15 @@ export async function POST(req){
       const snap=await users.doc(body.key).get();
       return snap.exists?NextResponse.json(snap.data()):NextResponse.json({error:"not found"},{status:404});
     }
+    if(action==="saveFriends"){
+      const{key,friends}=body;
+      if(!key)return NextResponse.json({error:"no key"},{status:400});
+      const ref=db.collection("users").doc(key);
+      const doc=await ref.get();
+      const existing=doc.exists?doc.data():{};
+      await ref.set({...existing,friends:friends||[]},{merge:true});
+      return NextResponse.json({ok:true});
+    }
     if(action==="saveChat"){
       const ref=users.doc(body.key);
       const snap=await ref.get();

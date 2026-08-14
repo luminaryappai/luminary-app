@@ -537,9 +537,123 @@ function ChatScreen({chart,name,onBack,userKey}){
   );
 }
 
+/* ═══ FRIENDS — read a friend's chart + romantic/friendship compatibility ═══ */
+function FriendsScreen({userChart,userName,friends,setFriends,ukey,post,onChat}){
+  const[adding,setAdding]=useState(friends.length===0);
+  const[fn,setFn]=useState("");const[fd,setFd]=useState("");const[ft,setFt]=useState("");
+  const[cityQ,setCityQ]=useState("");const[cityR,setCityR]=useState([]);const[city,setCity]=useState(null);
+  const[mode,setMode]=useState("friendship");
+  const[busy,setBusy]=useState(false);const[fErr,setFErr]=useState(null);
+  const[openIdx,setOpenIdx]=useState(0);
+  const searchC=async(q)=>{setCityQ(q);setCity(null);setCityR(q.length>=2?await searchCity(q):[]);};
+  const addFriend=async()=>{
+    if(!fn.trim()||!fd||!city){setFErr("Name, birth date, and city are required.");return;}
+    setBusy(true);setFErr(null);
+    try{
+      const fCh=await post("/api/chart",{name:fn.trim(),date:fd,time:ft||"unknown",lat:city.lat,lon:city.lon,city:city.n});
+      const comp=await post("/api/compatibility",{
+        userName,friendName:fn.trim(),
+        userPrompt:userChart.promptText,friendPrompt:fCh.promptText,
+        userNatal:userChart.natal?userChart.natal.planets:null,
+        friendNatal:fCh.natal?fCh.natal.planets:null,
+        mode,
+      });
+      const entry={name:fn.trim(),mode,sun:fCh.sun,moon:fCh.moon,rising:fCh.rising,result:comp,ts:Date.now()};
+      const list=[entry,...friends];
+      setFriends(list);setOpenIdx(0);setAdding(false);
+      setFn("");setFd("");setFt("");setCityQ("");setCity(null);
+      if(ukey){try{await fetch("/api/user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"saveFriends",key:ukey,friends:list})});}catch{}}
+    }catch(e){setFErr(String(e.message||e));}
+    setBusy(false);
+  };
+  const inp={width:"100%",padding:"12px 14px",borderRadius:12,border:"1px solid "+P.bdr,background:P.card,fontSize:14,fontFamily:SN,color:P.ink,outline:"none",boxSizing:"border-box"};
+  const modeBtn=(m,l)=>(<button onClick={()=>setMode(m)} style={{flex:1,fontFamily:SN,fontSize:10,padding:"9px 6px",borderRadius:12,cursor:"pointer",border:"1.5px solid "+(mode===m?"rgba(191,140,62,0.4)":P.bdr),background:mode===m?P.goldBg:P.card,color:mode===m?P.gold:P.lt,fontWeight:mode===m?500:300}}>{l}</button>);
+  return(
+    <div style={{minHeight:"100%",background:P.bg,padding:"28px 18px 100px"}}>
+      <style>{V6CSS}</style>
+      <div style={{textAlign:"center",marginBottom:20}}>
+        <div style={{fontFamily:SN,fontSize:8,letterSpacing:4,color:P.gold,textTransform:"uppercase",marginBottom:10,opacity:0.5}}>friends & connections</div>
+        <h2 style={{fontFamily:SR,fontSize:32,fontWeight:300,color:P.ink,margin:0,lineHeight:1.1}}>Read the people in your life</h2>
+        <p style={{fontFamily:SR,fontSize:13,color:P.lt,fontStyle:"italic",marginTop:6}}>Their chart. Your chemistry. Real synastry.</p>
+      </div>
+      {!adding&&(
+        <button onClick={()=>setAdding(true)} style={{width:"100%",fontFamily:SN,fontSize:11,fontWeight:500,letterSpacing:1,color:"#FAF6F0",background:P.ink,border:"none",padding:"14px",borderRadius:14,cursor:"pointer",marginBottom:16}}>+ Read a new friend</button>
+      )}
+      {adding&&(
+        <div style={{background:P.card,border:"1px solid "+P.bdr,borderRadius:14,padding:18,marginBottom:16,boxShadow:SH}}>
+          <div style={{display:"flex",gap:6,marginBottom:12}}>
+            {modeBtn("friendship","Friendship")}
+            {modeBtn("romantic","Romantic")}
+            {modeBtn("chart","Just their chart")}
+          </div>
+          <div style={{display:"grid",gap:10}}>
+            <input value={fn} onChange={e=>setFn(e.target.value)} placeholder="Their name" style={inp}/>
+            <input type="date" value={fd} onChange={e=>setFd(e.target.value)} style={inp}/>
+            <input type="time" value={ft} onChange={e=>setFt(e.target.value)} style={inp}/>
+            <div style={{fontFamily:SN,fontSize:9,color:P.fn,marginTop:-6}}>Birth time optional — adds Rising sign precision</div>
+            <div style={{position:"relative"}}>
+              <input value={city?city.n:cityQ} onChange={e=>searchC(e.target.value)} placeholder="Birth city" style={inp}/>
+              {cityR.length>0&&!city&&(
+                <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#FFF",border:"1px solid "+P.bdr,borderRadius:12,marginTop:4,zIndex:20,boxShadow:SH3,maxHeight:180,overflowY:"auto"}}>
+                  {cityR.map((c,i)=>(<div key={i} onClick={()=>{setCity(c);setCityR([]);}} style={{padding:"10px 14px",fontFamily:SN,fontSize:13,color:P.ink,cursor:"pointer",borderBottom:i<cityR.length-1?"1px solid rgba(42,33,24,0.04)":"none"}}>{c.n}</div>))}
+                </div>
+              )}
+            </div>
+          </div>
+          {fErr&&<p style={{fontFamily:SN,fontSize:11,color:P.terra,marginTop:10}}>{fErr}</p>}
+          <div style={{display:"flex",gap:8,marginTop:14}}>
+            {friends.length>0&&<button onClick={()=>{setAdding(false);setFErr(null);}} style={{fontFamily:SN,fontSize:10,padding:"11px 16px",borderRadius:12,cursor:"pointer",border:"1px solid "+P.bdr,background:"transparent",color:P.lt}}>Cancel</button>}
+            <button onClick={addFriend} disabled={busy} style={{flex:1,fontFamily:SN,fontSize:11,fontWeight:500,letterSpacing:1,color:"#FAF6F0",background:busy?P.fn:P.ink,border:"none",padding:"12px",borderRadius:12,cursor:busy?"default":"pointer"}}>{busy?"Reading the stars...":"Generate reading"}</button>
+          </div>
+          {busy&&<div style={{textAlign:"center",marginTop:14}}><Spinner size={44}/></div>}
+        </div>
+      )}
+      {friends.map((f,i)=>{
+        const isOpen=openIdx===i;const r=f.result||{};const c=r.compatibility;const snap=r.friendSnapshot;
+        return(
+          <div key={i} style={{background:P.card,border:"1px solid "+P.bdr,borderRadius:14,marginBottom:10,overflow:"hidden",boxShadow:isOpen?SH3:SH}}>
+            <div style={{height:2,opacity:0.5,background:"linear-gradient(90deg,"+(f.mode==="romantic"?P.terra:P.sage)+"80,transparent 75%)"}}/>
+            <div onClick={()=>setOpenIdx(isOpen?-1:i)} style={{padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
+              <div>
+                <div style={{fontFamily:SR,fontSize:17,color:P.ink}}>{f.name}</div>
+                <div style={{fontFamily:SN,fontSize:9,color:P.lt,marginTop:2}}>{ZG[f.sun]||""} {f.sun} · {ZG[f.moon]||""} {f.moon}{f.rising&&f.rising!=="Unknown"?" · "+f.rising+" Rising":""} · {f.mode==="chart"?"Chart":f.mode==="romantic"?"Romantic":"Friendship"}</div>
+              </div>
+              <span style={{fontFamily:SN,fontSize:9,color:P.fn,transition:"transform 0.25s",transform:isOpen?"rotate(180deg)":"none"}}>▾</span>
+            </div>
+            {isOpen&&(
+              <div style={{padding:"0 16px 16px"}}>
+                {snap&&<div style={{background:P.goldBg,border:"1px solid rgba(191,140,62,0.1)",borderRadius:12,padding:"14px 16px",marginBottom:10}}>
+                  <div style={{fontFamily:SN,fontSize:7,letterSpacing:2,color:P.gold,textTransform:"uppercase",marginBottom:6}}>Their chart</div>
+                  <p style={{fontFamily:SR,fontSize:14,color:P.ink,fontStyle:"italic",lineHeight:1.6,marginBottom:6}}>{snap.headline}</p>
+                  <p style={{fontFamily:SR,fontSize:13,color:P.mid,fontStyle:"italic",lineHeight:1.65}}>{snap.portrait}</p>
+                </div>}
+                {c&&<>
+                  <p style={{fontFamily:SR,fontSize:14,color:P.mid,fontStyle:"italic",lineHeight:1.7,marginBottom:10}}>{c.overview}</p>
+                  {c.strengths&&<div style={{marginBottom:10}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.sage,textTransform:"uppercase",fontWeight:500,marginBottom:6}}>What works</div>{c.strengths.map((x,j)=><p key={j} style={{fontFamily:SR,fontSize:13,color:P.mid,fontStyle:"italic",lineHeight:1.6,marginBottom:3}}>✦ {x}</p>)}</div>}
+                  {c.frictions&&<div style={{marginBottom:10}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.terra,textTransform:"uppercase",fontWeight:500,marginBottom:6}}>Watch for</div>{c.frictions.map((x,j)=><p key={j} style={{fontFamily:SR,fontSize:13,color:P.mid,fontStyle:"italic",lineHeight:1.6,marginBottom:3}}>◦ {x}</p>)}</div>}
+                  {c.keyAspects&&<div style={{marginBottom:10}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.violet,textTransform:"uppercase",fontWeight:500,marginBottom:6}}>The astrology</div>{c.keyAspects.map((a,j)=><div key={j} style={{marginBottom:6}}><div style={{fontFamily:SN,fontSize:11,fontWeight:500,color:P.ink}}>{a.aspect}</div><p style={{fontFamily:SR,fontSize:12,color:P.mid,fontStyle:"italic",lineHeight:1.55}}>{a.meaning}</p></div>)}</div>}
+                  {c.advice&&<div style={{background:P.sageBg,border:"1px solid rgba(122,148,104,0.12)",borderRadius:12,padding:"12px 16px"}}><div style={{fontFamily:SN,fontSize:7,letterSpacing:2,color:P.sage,textTransform:"uppercase",marginBottom:4}}>Make it thrive</div><p style={{fontFamily:SR,fontSize:13,color:P.ink,fontStyle:"italic",lineHeight:1.6}}>{c.advice}</p></div>}
+                </>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <button onClick={onChat} style={{position:"fixed",bottom:20,right:20,zIndex:100,fontFamily:SN,fontSize:11,fontWeight:500,letterSpacing:0.8,color:"#FAF6F0",background:P.ink,border:"none",padding:"12px 22px",borderRadius:24,cursor:"pointer",boxShadow:"0 4px 20px rgba(42,33,24,0.25)",display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12,opacity:0.7}}>✦</span> Ask Luminary</button>
+    </div>
+  );
+}
+
 /* ═══ MAIN CONTROLLER — preload, persistent return, 5 tabs ═══ */
 export default function Luminary(){
-  const[scr,setScr]=useState("boot");const[tag,setTag]=useState("before");
+  const[scr,setScr]=useState("boot");const tag="before";const[shared,setShared]=useState(false);
+  const[friends,setFriends]=useState([]);
+  const shareApp=async()=>{
+    const url=typeof window!=="undefined"?window.location.origin:"";
+    const data={title:"Luminary",text:"Your life, before it happens. Get your reading:",url};
+    try{if(navigator.share){await navigator.share(data);return;}}catch{}
+    try{await navigator.clipboard.writeText(url);setShared(true);setTimeout(()=>setShared(false),2000);}catch{}
+  };
   const[bd,setBd]=useState(null);const[ans,setAns]=useState(null);
   const[chart,setChart]=useState(null);const[reading,setReading]=useState(null);
   const[bca,setBca]=useState(null);const[err,setErr]=useState(null);const[ukey,setUkey]=useState(null);
@@ -563,7 +677,7 @@ export default function Luminary(){
         const u=await post("/api/user",{action:"get",key:saved.key});
         if(!u.chart)throw new Error("no chart");
         setChart(u.chart);setReading(u.reading);setBca(u.birthchartAnalysis||null);
-        setBd({name:u.name,ig:u.ig,...(u.birth||{})});setAns(u.answers||null);setUkey(saved.key);
+        setBd({name:u.name,ig:u.ig,...(u.birth||{})});setAns(u.answers||null);setUkey(saved.key);setFriends(u.friends||[]);
         setScr("reading");
         /* silent refresh: new week, new reading — chart + birth chart stay cached */
         if(u.answers){
@@ -595,7 +709,7 @@ export default function Luminary(){
   const reset=()=>{try{localStorage.removeItem("luminary_user");}catch{}
     setBd(null);setAns(null);setChart(null);setReading(null);setBca(null);setErr(null);setUkey(null);setScr("landing");};
 
-  const navItems=[{id:"landing",l:"Home"},{id:"reading",l:"Reading"},{id:"birthchart",l:"Birth Chart"},{id:"humandesign",l:"Design"},{id:"shareable",l:"Star Note"},{id:"chat",l:"✦ Ask"}];
+  const navItems=[{id:"landing",l:"Home"},{id:"reading",l:"Reading"},{id:"birthchart",l:"Birth Chart"},{id:"humandesign",l:"Design"},{id:"shareable",l:"Star Note"},{id:"chat",l:"✦ Ask"},{id:"friends",l:"Friends"}];
   const navBtn=(id)=>({fontFamily:SN,fontSize:9,border:"none",padding:"5px 8px",borderRadius:5,cursor:"pointer",background:scr===id?P.warm:"transparent",color:scr===id?P.ink:P.fn});
   const navGo=(id)=>{
     if(id==="landing")setScr(chart?"reading":"landing");
@@ -604,17 +718,15 @@ export default function Luminary(){
     else if(id==="humandesign"&&chart)setScr("humandesign");
     else if(id==="shareable"&&reading)setScr("shareable");
     else if(id==="chat"&&chart)setScr("chat");
+    else if(id==="friends"&&chart)setScr("friends");
   };
 
   return(
     <>
       <style>{V6CSS}</style>
-      <div style={{display:"flex",alignItems:"center",gap:2,padding:"8px 8px",background:"#FFF",borderBottom:"1px solid rgba(42,33,24,0.05)",flexShrink:0}}>
+      <div style={{display:"flex",alignItems:"center",gap:2,padding:"8px 8px",background:"#FFF",borderBottom:"1px solid rgba(42,33,24,0.05)",flexShrink:0,overflowX:"auto",whiteSpace:"nowrap"}}>
         {navItems.map(n=><button key={n.id} onClick={()=>navGo(n.id)} style={navBtn(n.id)}>{n.l}</button>)}
-        <div style={{display:"flex",gap:3,marginLeft:"auto"}}>
-          <button onClick={()=>setTag("before")} style={{fontFamily:SN,fontSize:8,padding:"3px 6px",borderRadius:4,cursor:"pointer",border:"1px solid "+(tag==="before"?"rgba(191,140,62,0.19)":"transparent"),background:tag==="before"?P.goldBg:"transparent",color:tag==="before"?P.gold:P.fn}}>before</button>
-          <button onClick={()=>setTag("as")} style={{fontFamily:SN,fontSize:8,padding:"3px 6px",borderRadius:4,cursor:"pointer",border:"1px solid "+(tag==="as"?"rgba(122,148,104,0.19)":"transparent"),background:tag==="as"?P.sageBg:"transparent",color:tag==="as"?P.sage:P.fn}}>as</button>
-        </div>
+        <button onClick={shareApp} style={{fontFamily:SN,fontSize:9,padding:"5px 12px",borderRadius:12,cursor:"pointer",border:"1px solid rgba(191,140,62,0.25)",background:P.goldBg,color:P.gold,marginLeft:"auto",whiteSpace:"nowrap"}}>{shared?"✓ Copied":"↗ Share"}</button>
       </div>
       <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
         {scr==="boot"&&<div style={{flex:1,background:P.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><Spinner size={48}/></div>}
@@ -626,6 +738,7 @@ export default function Luminary(){
         {scr==="birthchart"&&chart&&<BirthChartScreen chart={chart} analysis={bca} name={bd?.name||""} onChat={()=>setScr("chat")}/>}
         {scr==="humandesign"&&chart&&<HDScreen chart={chart} analysis={bca} name={bd?.name||""} onChat={()=>setScr("chat")}/>}
         {scr==="shareable"&&reading&&chart&&<ShareableScreen reading={reading} name={bd?.name||""} chart={chart} onBack={()=>setScr("reading")}/>}
+        {scr==="friends"&&chart&&<FriendsScreen userChart={chart} userName={bd?.name||""} friends={friends} setFriends={setFriends} ukey={ukey} post={post} onChat={()=>setScr("chat")}/>}
         {scr==="chat"&&chart&&<ChatScreen chart={chart} name={bd?.name||""} onBack={()=>setScr("reading")} userKey={ukey}/>}
         {scr==="error"&&(
           <div style={{flex:1,background:P.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:40,textAlign:"center"}}>
