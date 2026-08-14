@@ -61,7 +61,19 @@ function OrrerySVG({size=48,slow=1}){
 function Orrery(){
   return(
     <div style={{position:"absolute",top:-60,right:-120,width:440,height:440,zIndex:1,opacity:0,transform:"scale(0.5) rotate(-40deg)",animation:"orrIn 2.2s cubic-bezier(0.16,1,0.3,1) 0.1s forwards"}}>
-      <OrrerySVG size={440} slow={3}/>
+      <div style={{position:"absolute",width:28,height:28,borderRadius:"50%",top:206,left:206,background:"radial-gradient(circle,#E8C98A 0%,#BF8C3E 50%,rgba(191,140,62,0.2) 100%)",boxShadow:"0 0 30px rgba(218,176,98,0.35),0 0 60px rgba(218,176,98,0.1)"}}/>
+      <div style={{position:"absolute",borderRadius:"50%",width:120,height:120,top:160,left:160,borderWidth:6,borderStyle:"solid",borderColor:"rgba(196,131,106,0.18)",animation:"orb 45s linear infinite"}}>
+        <div style={{position:"absolute",borderRadius:"50%",width:14,height:14,background:P.terra,top:"-50%",left:"50%",margin:"-7px 0 0 -7px",boxShadow:"0 0 12px rgba(196,131,106,0.5)"}}/>
+      </div>
+      <div style={{position:"absolute",borderRadius:"50%",width:200,height:200,top:120,left:120,borderWidth:8,borderStyle:"solid",borderColor:"rgba(122,148,104,0.14)",animation:"orb 65s linear infinite reverse"}}>
+        <div style={{position:"absolute",borderRadius:"50%",width:18,height:18,background:P.sage,top:"-50%",left:"50%",margin:"-9px 0 0 -9px",boxShadow:"0 0 14px rgba(122,148,104,0.4)"}}/>
+      </div>
+      <div style={{position:"absolute",borderRadius:"50%",width:300,height:300,top:70,left:70,borderWidth:5,borderStyle:"solid",borderColor:"rgba(141,128,184,0.10)",animation:"orb 90s linear infinite"}}>
+        <div style={{position:"absolute",borderRadius:"50%",width:12,height:12,background:P.violet,top:"-50%",left:"50%",margin:"-6px 0 0 -6px",boxShadow:"0 0 10px rgba(141,128,184,0.4)"}}/>
+      </div>
+      <div style={{position:"absolute",borderRadius:"50%",width:400,height:400,top:20,left:20,borderWidth:3,borderStyle:"solid",borderColor:"rgba(191,140,62,0.06)",animation:"orb 120s linear infinite reverse"}}>
+        <div style={{position:"absolute",borderRadius:"50%",width:8,height:8,background:P.gold,opacity:0.5,top:"-50%",left:"50%",margin:"-4px 0 0 -4px",boxShadow:"0 0 8px rgba(191,140,62,0.3)"}}/>
+      </div>
     </div>
   );
 }
@@ -463,7 +475,7 @@ function ShareableScreen({reading,name,chart,onBack}){
       <div style={{width:"100%",maxWidth:300,aspectRatio:"9/16",background:"linear-gradient(160deg,#F5EDE0 0%,#F6EDD9 60%,#F5EBE5 100%)",border:"1px solid rgba(191,140,62,0.1)",borderRadius:16,overflow:"hidden",position:"relative",display:"flex",flexDirection:"column",justifyContent:"center",padding:"36px 22px",boxShadow:"0 8px 32px rgba(42,33,24,0.08)"}}>
         <div style={{position:"absolute",top:18,left:22,fontFamily:SN,fontSize:7,letterSpacing:4,color:P.fn,textTransform:"uppercase"}}>luminary</div>
         <div style={{position:"absolute",top:36,left:22,right:22,height:1,background:"linear-gradient(90deg,rgba(191,140,62,0.2),transparent)"}}/>
-        <div style={{position:"absolute",top:-70,right:-100,width:320,height:320,opacity:0.35,pointerEvents:"none"}}><OrrerySVG size={320} slow={3}/></div>
+        <div style={{position:"absolute",top:-60,right:-120,width:440,height:440,opacity:0.35,pointerEvents:"none"}}><OrrerySVG size={440} slow={3}/></div>
         <blockquote style={{fontFamily:SR,fontSize:18,fontWeight:300,color:P.ink,lineHeight:1.58,margin:0,fontStyle:"italic",zIndex:1}}>"{reading.line}"</blockquote>
         <div style={{position:"absolute",bottom:22,left:22,right:22,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
           <div>
@@ -540,10 +552,29 @@ function FriendsScreen({userChart,userName,userBirth,friends,setFriends,ukey,pos
   const[adding,setAdding]=useState(friends.length===0);
   const[fn,setFn]=useState("");const[fd,setFd]=useState("");const[ft,setFt]=useState("");
   const[cityQ,setCityQ]=useState("");const[cityR,setCityR]=useState([]);const[city,setCity]=useState(null);
+  const[st,setSt]=useState("");
+  const US_STATES=[["Alabama","AL"],["Alaska","AK"],["Arizona","AZ"],["Arkansas","AR"],["California","CA"],["Colorado","CO"],["Connecticut","CT"],["Delaware","DE"],["Florida","FL"],["Georgia","GA"],["Hawaii","HI"],["Idaho","ID"],["Illinois","IL"],["Indiana","IN"],["Iowa","IA"],["Kansas","KS"],["Kentucky","KY"],["Louisiana","LA"],["Maine","ME"],["Maryland","MD"],["Massachusetts","MA"],["Michigan","MI"],["Minnesota","MN"],["Mississippi","MS"],["Missouri","MO"],["Montana","MT"],["Nebraska","NE"],["Nevada","NV"],["New Hampshire","NH"],["New Jersey","NJ"],["New Mexico","NM"],["New York","NY"],["North Carolina","NC"],["North Dakota","ND"],["Ohio","OH"],["Oklahoma","OK"],["Oregon","OR"],["Pennsylvania","PA"],["Rhode Island","RI"],["South Carolina","SC"],["South Dakota","SD"],["Tennessee","TN"],["Texas","TX"],["Utah","UT"],["Vermont","VT"],["Virginia","VA"],["Washington","WA"],["West Virginia","WV"],["Wisconsin","WI"],["Wyoming","WY"],["Washington DC","DC"]];
   const[mode,setMode]=useState("friendship");
   const[busy,setBusy]=useState(false);const[fErr,setFErr]=useState(null);
   const[openIdx,setOpenIdx]=useState(0);
-  const searchC=async(q)=>{setCityQ(q);setCity(null);setCityR(q.length>=2?await searchCity(q):[]);};
+  const searchC=async(q)=>{
+    setCityQ(q);setCity(null);
+    if(q.length<2){setCityR([]);return;}
+    try{
+      const stName=US_STATES.find(x=>x[1]===st);
+      const query=st==="INTL"?q:q+", "+(stName?stName[0]:"")+", USA";
+      const r=await fetch("https://nominatim.openstreetmap.org/search?q="+encodeURIComponent(query)+"&format=json&limit=8&addressdetails=1");
+      const d=await r.json();
+      const places=d.filter(x=>x.class==="place"||x.class==="boundary").map(x=>{
+        const nm=x.display_name.split(",")[0].trim();
+        const label=st==="INTL"?x.display_name.split(",").slice(0,2).join(",").trim()+", "+x.display_name.split(",").pop().trim():nm+", "+st;
+        return{n:label,lat:parseFloat(x.lat),lon:parseFloat(x.lon)};
+      });
+      const seen=new Set();
+      setCityR(places.filter(x=>{if(seen.has(x.n))return false;seen.add(x.n);return true;}).slice(0,6));
+    }catch{setCityR([]);}
+  };
+  const pickCity=(c)=>{setCity(c);setCityQ(c.n);setCityR([]);};
   const addFriend=async()=>{
     if(!fn.trim()||!fd||!city){setFErr("Name, birth date, and city are required.");return;}
     setBusy(true);setFErr(null);
@@ -559,7 +590,7 @@ function FriendsScreen({userChart,userName,userBirth,friends,setFriends,ukey,pos
       const entry={name:fn.trim(),mode,sun:fCh.sun,moon:fCh.moon,rising:fCh.rising,result:comp,ts:Date.now()};
       const list=[entry,...friends];
       setFriends(list);setOpenIdx(0);setAdding(false);
-      setFn("");setFd("");setFt("");setCityQ("");setCity(null);
+      setFn("");setFd("");setFt("");setCityQ("");setCity(null);setSt("");setCityR([]);
       if(ukey){try{await fetch("/api/user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"saveFriends",key:ukey,friends:list})});}catch{}}
     }catch(e){setFErr(String(e.message||e));}
     setBusy(false);
@@ -589,14 +620,22 @@ function FriendsScreen({userChart,userName,userBirth,friends,setFriends,ukey,pos
             <input type="date" value={fd} onChange={e=>setFd(e.target.value)} style={inp}/>
             <input type="time" value={ft} onChange={e=>setFt(e.target.value)} style={inp}/>
             <div style={{fontFamily:SN,fontSize:9,color:P.fn,marginTop:-6}}>Birth time optional — adds Rising sign precision</div>
-            <div style={{position:"relative"}}>
-              <input value={city?city.n:cityQ} onChange={e=>searchC(e.target.value)} placeholder="Birth city" style={inp}/>
-              {cityR.length>0&&!city&&(
-                <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#FFF",border:"1px solid "+P.bdr,borderRadius:12,marginTop:4,zIndex:20,boxShadow:SH3,maxHeight:180,overflowY:"auto"}}>
-                  {cityR.map((c,i)=>(<div key={i} onClick={()=>{setCity(c);setCityR([]);}} style={{padding:"10px 14px",fontFamily:SN,fontSize:13,color:P.ink,cursor:"pointer",borderBottom:i<cityR.length-1?"1px solid rgba(42,33,24,0.04)":"none"}}>{c.n}</div>))}
-                </div>
-              )}
-            </div>
+            <select value={st} onChange={e=>{setSt(e.target.value);setCity(null);setCityQ("");setCityR([]);}} style={{...inp,appearance:"auto",color:st?P.ink:P.lt}}>
+              <option value="">Birth state...</option>
+              {US_STATES.map(([n,a])=><option key={a} value={a}>{n}</option>)}
+              <option value="INTL">🌍 Outside the US</option>
+            </select>
+            {st&&(
+              <div style={{position:"relative"}}>
+                <input value={cityQ} onChange={e=>searchC(e.target.value)} placeholder={st==="INTL"?"Birth city, country":"Birth city"} style={{...inp,borderColor:city?"rgba(122,148,104,0.4)":P.bdr}}/>
+                {city&&<span style={{position:"absolute",right:14,top:14,fontFamily:SN,fontSize:11,color:P.sage}}>✓</span>}
+                {cityR.length>0&&!city&&(
+                  <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#FFF",border:"1px solid "+P.bdr,borderRadius:12,marginTop:4,zIndex:20,boxShadow:SH3,maxHeight:180,overflowY:"auto"}}>
+                    {cityR.map((c,i)=>(<div key={i} onClick={()=>pickCity(c)} style={{padding:"10px 14px",fontFamily:SN,fontSize:13,color:P.ink,cursor:"pointer",borderBottom:i<cityR.length-1?"1px solid rgba(42,33,24,0.04)":"none"}}>{c.n}</div>))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           {fErr&&<p style={{fontFamily:SN,fontSize:11,color:P.terra,marginTop:10}}>{fErr}</p>}
           <div style={{display:"flex",gap:8,marginTop:14}}>
