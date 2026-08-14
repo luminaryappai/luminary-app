@@ -1,2 +1,2 @@
 # Luminary — Your life, before it happens.
-AI-powered personalized astrology. V8.2 — Built on V6 approved design.
+V8.3 — V6 approved design + Firestore + Human Design + Grim-register birth chart.

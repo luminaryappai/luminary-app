@@ -1,5 +1,3 @@
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 export const metadata = {
   title: "Luminary — Your life, before it happens.",
   description: "AI-powered personalized astrology readings from your exact birth chart.",
@@ -17,8 +15,6 @@ export default function RootLayout({ children }) {
         <div style={{ maxWidth:420, width:"100%", minHeight:"100vh", display:"flex", flexDirection:"column" }}>
           {children}
         </div>
-        <Analytics />
-        <SpeedInsights />
       </body>
     </html>
   );
