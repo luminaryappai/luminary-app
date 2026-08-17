@@ -49,15 +49,17 @@ async function callClaude(payload){
 
 export async function POST(req){
   try{
-    const{chartText,name,focus,energy,seeking}=await req.json();
+    const{chartText,name,focus,energy,seeking,plan}=await req.json();
+    const isPlus=plan==="plus";
     const text=await callClaude({
-      max_tokens:4000,
+      max_tokens:isPlus?5500:4000,
       messages:[{role:"user",content:`You are Luminary, a warm and insightful AI astrologer. You speak like a wise friend who understands the stars deeply. Empathetic, specific, grounded. No jargon without translation. No degree symbols. Lead with feelings, then explain astrologically.
 
 Chart data for ${name}: ${chartText}
 Life focus: ${focus}. Energy: ${energy}. Seeking: ${seeking}.
 
-Return ONLY raw JSON, no markdown, no preamble. Keep every "body" under 45 words so the JSON completes:
+Return ONLY raw JSON, no markdown, no preamble. Keep every "body" under ${isPlus?70:45} words so the JSON completes:${isPlus?`
+PLUS TIER: additionally include in EVERY weekly and monthly card a "window" field — the specific best day(s) or date range this week to act on this energy, with a one-line action ("Thursday PM: send the email"). Also add a 5th weekly card {"area":"The Window","planet":"✦","title":"...","body":"the single most important timing window of the week and exactly what to do in it","window":"...","intensity":n}.`:""}
 {
  "weekly":[
   {"area":"This Week's Energy","planet":"♄","title":"short title","body":"insight","intensity":8},

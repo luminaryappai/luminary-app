@@ -1,10 +1,35 @@
 import { NextResponse } from "next/server";
+import { getFirestore } from "firebase-admin/firestore";
+import { initializeApp, getApps, applicationDefault } from "firebase-admin/app";
+
+if(getApps().length===0)initializeApp({credential:applicationDefault()});
+const db=getFirestore();
+
+function weekKey(){const d=new Date();const y=d.getUTCFullYear();const onejan=new Date(Date.UTC(y,0,1));const wk=Math.ceil((((d-onejan)/86400000)+onejan.getUTCDay()+1)/7);return y+"-W"+wk;}
+const FREE_WEEKLY_LIMIT=10;
 
 const MODELS=["claude-sonnet-4-5","claude-sonnet-4-20250514","claude-3-5-sonnet-20241022"];
 
 export async function POST(req){
   try{
-    const{messages,userName}=await req.json();
+    const{messages,userName,ukey}=await req.json();
+    /* Metering: free tier gets FREE_WEEKLY_LIMIT messages per week; Plus unlimited */
+    let userRef=null;
+    if(ukey){
+      try{
+        userRef=db.collection("users").doc(ukey);
+        const doc=await userRef.get();
+        const u=doc.exists?doc.data():{};
+        if(u.plan!=="plus"){
+          const wk=weekKey();
+          const used=(u.chatMeter&&u.chatMeter.week===wk)?u.chatMeter.count:0;
+          if(used>=FREE_WEEKLY_LIMIT){
+            return NextResponse.json({paywall:true,reply:""});
+          }
+          await userRef.set({chatMeter:{week:wk,count:used+1}},{merge:true});
+        }
+      }catch(e){console.error("meter:",e);}
+    }
     if(!process.env.ANTHROPIC_API_KEY)return NextResponse.json({reply:"Server is missing its API key. Tell Mat."});
     let lastErr="";
     for(const model of MODELS){

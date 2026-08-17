@@ -519,7 +519,7 @@ function ShareableScreen({reading,name,chart,onBack}){
 }
 
 /* ═══ CHAT ═══ */
-function ChatScreen({chart,name,onBack,userKey,initialMsgs,onSync}){
+function ChatScreen({chart,name,onBack,userKey,initialMsgs,onSync,plan,onPaywall}){
   const[msgs,setMsgs]=useState((initialMsgs&&initialMsgs.length>0)?initialMsgs:[{role:"assistant",text:"Welcome, "+name+". I'm Luminary — trained on the combined methods of the great schools of astrology: evolutionary, psychological, Hellenistic, and modern classical technique, plus complete Human Design mechanics. I'm reading your exact chart right now — "+chart.sun+" Sun, "+chart.moon+" Moon"+(chart.rising!=="Unknown"?", "+chart.rising+" Rising":"")+(chart.humanDesign?", "+chart.humanDesign.type+" ("+chart.humanDesign.profile+")":"")+" — not a generic horoscope. Ask me anything about your life, your timing, or your design."}]);
   const[inp,setInp]=useState("");const[ld,setLd]=useState(false);const ref=useRef(null);
   const suggestions=[
@@ -532,7 +532,13 @@ function ChatScreen({chart,name,onBack,userKey,initialMsgs,onSync}){
   const sendText=async(text)=>{if(!text.trim()||ld)return;setInp("");setLd(true);
     const upd=[...msgs,{role:"user",text}];setMsgs(upd);if(onSync)onSync(upd);
     try{const am=[{role:"user",content:"Chart: "+chart.promptText+"\nQuerent: "+name}];upd.forEach(m=>am.push({role:m.role==="user"?"user":"assistant",content:m.text}));
-      const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:am,userName:name})});const d=await r.json();
+      const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:am,userName:name,ukey:userKey})});const d=await r.json();
+      if(d.paywall){
+        setMsgs(msgs); /* roll back the send — question is held, not lost */
+        setInp(text);
+        if(onPaywall)onPaywall(text);
+        setLd(false);return;
+      }
       const nm2=[...upd,{role:"assistant",text:d.reply}];setMsgs(nm2);if(onSync)onSync(nm2);if(userKey)saveChatHist(userKey,nm2);
     }catch{setMsgs(p=>[...p,{role:"assistant",text:"Connection lost. Try again?"}]);}setLd(false);};
   useEffect(()=>{if(ref.current)ref.current.scrollTop=ref.current.scrollHeight;},[msgs]);
@@ -571,7 +577,7 @@ function ChatScreen({chart,name,onBack,userKey,initialMsgs,onSync}){
 }
 
 /* ═══ FRIENDS — read a friend's chart + romantic/friendship compatibility ═══ */
-function FriendsScreen({userChart,userName,userBirth,friends,setFriends,ukey,post,onChat}){
+function FriendsScreen({userChart,userName,userBirth,friends,setFriends,ukey,post,onChat,plan,credits,setCredits,onPaywall}){
   const[adding,setAdding]=useState(friends.length===0);
   const[fn,setFn]=useState("");const[fd,setFd]=useState("");const[ft,setFt]=useState("");
   const[cityQ,setCityQ]=useState("");const[cityR,setCityR]=useState([]);const[city,setCity]=useState(null);
@@ -608,8 +614,32 @@ function FriendsScreen({userChart,userName,userBirth,friends,setFriends,ukey,pos
     },450);
   };
   const pickCity=(c)=>{setCity(c);setCityQ(c.n);setCityR([]);};
+  const monthKey=()=>{const d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1);};
+  const addedThisMonth=friends.filter(f=>{const d=new Date(f.ts||0);return(d.getFullYear()+"-"+(d.getMonth()+1))===monthKey();}).length;
+  const[deepBusy,setDeepBusy]=useState(-1);
+  const buyReport=async()=>{
+    try{
+      const r=await fetch("/api/stripe/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ukey,plan:"deepreport"})});
+      const d=await r.json();
+      if(d.url)window.location.href=d.url;else alert(d.error||"Payments aren't live yet.");
+    }catch{}
+  };
+  const runDeep=async(i)=>{
+    setDeepBusy(i);
+    try{
+      const r=await fetch("/api/deepreport",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ukey,friendIndex:i})});
+      const d=await r.json();
+      if(d.needsPurchase){buyReport();}
+      else if(d.report){
+        const list=[...friends];list[i]={...list[i],deepReport:d.report};
+        setFriends(list);if(setCredits)setCredits(c=>Math.max(0,c-1));
+      }else if(d.error)setFErr(d.error);
+    }catch{}
+    setDeepBusy(-1);
+  };
   const addFriend=async()=>{
     if(!fn.trim()||!fd){setFErr("Name and birth date are required.");return;}
+    if(plan!=="plus"&&addedThisMonth>=1){if(onPaywall)onPaywall("friends");return;}
     setBusy(true);setFErr(null);
     let cityFinal=city;
     if(!cityFinal&&cityQ.trim().length>=2&&st){
@@ -756,6 +786,25 @@ function FriendsScreen({userChart,userName,userBirth,friends,setFriends,ukey,pos
                   {c.frictions&&<div style={{marginBottom:10}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.terra,textTransform:"uppercase",fontWeight:500,marginBottom:6}}>Watch for</div>{c.frictions.map((x,j)=><p key={j} style={{fontFamily:SR,fontSize:13,color:P.mid,fontStyle:"italic",lineHeight:1.6,marginBottom:3}}>◦ {x}</p>)}</div>}
                   {r.computed&&r.computed.aspects&&r.computed.aspects.length>0&&<div style={{marginBottom:10}}><div style={{fontFamily:SN,fontSize:8,letterSpacing:2,color:P.violet,textTransform:"uppercase",fontWeight:500,marginBottom:6}}>Synastry aspects</div>{r.computed.aspects.slice(0,8).map((a,j)=><div key={j} style={{fontFamily:SN,fontSize:10,color:P.mid,padding:"2px 0"}}>{a.text} <span style={{color:P.fn,fontSize:9}}>({a.orb}°)</span></div>)}</div>}
                   {c.advice&&<div style={{background:P.sageBg,border:"1px solid rgba(122,148,104,0.12)",borderRadius:12,padding:"12px 16px"}}><div style={{fontFamily:SN,fontSize:7,letterSpacing:2,color:P.sage,textTransform:"uppercase",marginBottom:4}}>Make it thrive</div><p style={{fontFamily:SR,fontSize:13,color:P.ink,fontStyle:"italic",lineHeight:1.6}}>{c.advice}</p></div>}
+                  {!f.deepReport&&(
+                    <button onClick={()=>runDeep(i)} disabled={deepBusy===i} style={{width:"100%",marginTop:12,fontFamily:SN,fontSize:11,fontWeight:500,letterSpacing:0.5,color:"#FAF6F0",background:"linear-gradient(135deg,#2A2118,#4A3828)",border:"none",padding:"14px",borderRadius:12,cursor:"pointer"}}>
+                      {deepBusy===i?"The stars are writing...":credits>0?"✦ Generate the Deep Report (1 credit)":"✦ The Deep Report — the full story of you two · $14.99"}
+                    </button>
+                  )}
+                  {f.deepReport&&(
+                    <div style={{marginTop:14,background:"linear-gradient(160deg,#F5EDE0,#F6EDD9)",border:"1px solid rgba(191,140,62,0.18)",borderRadius:14,padding:"18px 16px",position:"relative",overflow:"hidden"}}>
+                      <div style={{position:"absolute",top:-50,right:-80,width:240,height:240,opacity:0.3,pointerEvents:"none"}}><OrreryClassic size={240}/></div>
+                      <div style={{fontFamily:SN,fontSize:7,letterSpacing:3,color:P.gold,textTransform:"uppercase",marginBottom:6,position:"relative"}}>the deep report</div>
+                      <div style={{fontFamily:SR,fontSize:19,fontWeight:300,color:P.ink,fontStyle:"italic",marginBottom:12,position:"relative"}}>{f.deepReport.title}</div>
+                      {(f.deepReport.sections||[]).map((sec,j)=>(
+                        <div key={j} style={{marginBottom:12,position:"relative"}}>
+                          <div style={{fontFamily:SN,fontSize:9,letterSpacing:2,color:P.terra,textTransform:"uppercase",fontWeight:500,marginBottom:4}}>{sec.h}</div>
+                          <p style={{fontFamily:SR,fontSize:13,color:P.mid,fontStyle:"italic",lineHeight:1.7}}>{sec.body}</p>
+                        </div>
+                      ))}
+                      {f.deepReport.closingLine&&<p style={{fontFamily:SR,fontSize:14,color:P.ink,fontStyle:"italic",textAlign:"center",marginTop:14,position:"relative"}}>"{f.deepReport.closingLine}"</p>}
+                    </div>
+                  )}
                 </>}
               </div>
             )}
@@ -763,6 +812,43 @@ function FriendsScreen({userChart,userName,userBirth,friends,setFriends,ukey,pos
         );
       })}
       <button onClick={onChat} style={{position:"fixed",right:0,top:"44%",zIndex:100,fontFamily:SN,fontSize:10,fontWeight:500,letterSpacing:2,color:"#FAF6F0",background:P.ink,border:"none",padding:"16px 9px",borderRadius:"14px 0 0 14px",cursor:"pointer",boxShadow:"-3px 3px 16px rgba(42,33,24,0.2)",writingMode:"vertical-rl",textOrientation:"mixed"}}>✦ Ask</button>
+    </div>
+  );
+}
+
+/* ═══ PAYWALL — one card, wallet-ready checkout via Stripe ═══ */
+function Paywall({ukey,onClose,heldQuestion,context}){
+  const[busy,setBusy]=useState(null);
+  const go=async(plan)=>{
+    setBusy(plan);
+    try{
+      const r=await fetch("/api/stripe/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ukey,plan})});
+      const d=await r.json();
+      if(d.url)window.location.href=d.url;
+      else{alert(d.error||"Payments aren't live yet — check back soon.");setBusy(null);}
+    }catch{setBusy(null);}
+  };
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(42,33,24,0.45)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:P.bg,borderRadius:18,maxWidth:380,width:"100%",padding:"26px 22px",boxShadow:"0 12px 48px rgba(42,33,24,0.3)",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-60,right:-90,width:280,height:280,opacity:0.35,pointerEvents:"none"}}><OrreryClassic size={280}/></div>
+        <div style={{fontFamily:SN,fontSize:8,letterSpacing:3,color:P.gold,textTransform:"uppercase",marginBottom:8}}>luminary+</div>
+        <div style={{fontFamily:SR,fontSize:24,fontWeight:300,color:P.ink,lineHeight:1.25,marginBottom:8,position:"relative",zIndex:1}}>This is the moment most apps squeeze you.</div>
+        <p style={{fontFamily:SR,fontSize:13,color:P.mid,fontStyle:"italic",lineHeight:1.6,marginBottom:12,position:"relative",zIndex:1}}>We'd rather earn you. Your chart is cast to the minute you were born — not your sun sign, your sky. Luminary+ opens all of it.</p>
+        {heldQuestion&&<div style={{background:P.goldBg,border:"1px solid rgba(191,140,62,0.15)",borderRadius:10,padding:"10px 14px",marginBottom:12,position:"relative",zIndex:1}}><div style={{fontFamily:SN,fontSize:7,letterSpacing:2,color:P.gold,textTransform:"uppercase",marginBottom:3}}>your question is waiting</div><div style={{fontFamily:SR,fontSize:12,color:P.ink,fontStyle:"italic"}}>"{heldQuestion}"</div></div>}
+        <div style={{fontFamily:SN,fontSize:11,color:P.mid,lineHeight:1.8,marginBottom:14,position:"relative",zIndex:1}}>
+          ✦ Unlimited Ask Luminary<br/>
+          ✦ Weekly reading with exact timing windows<br/>
+          ✦ Unlimited friends & full compatibility<br/>
+          ✦ Your year ahead, as it opens
+        </div>
+        <button onClick={()=>go("founding")} disabled={!!busy} style={{width:"100%",fontFamily:SN,fontSize:12,fontWeight:500,letterSpacing:0.5,color:"#FAF6F0",background:P.ink,border:"none",padding:"14px",borderRadius:12,cursor:"pointer",marginBottom:8,position:"relative",zIndex:1}}>{busy==="founding"?"Opening...":"Founding Member — $2.99/mo, yours for life"}</button>
+        <div style={{display:"flex",gap:8,position:"relative",zIndex:1}}>
+          <button onClick={()=>go("monthly")} disabled={!!busy} style={{flex:1,fontFamily:SN,fontSize:10,color:P.mid,background:P.card,border:"1px solid "+P.bdr,padding:"10px",borderRadius:10,cursor:"pointer"}}>{busy==="monthly"?"...":"$4.99/mo"}</button>
+          <button onClick={()=>go("annual")} disabled={!!busy} style={{flex:1,fontFamily:SN,fontSize:10,color:P.mid,background:P.card,border:"1px solid "+P.bdr,padding:"10px",borderRadius:10,cursor:"pointer"}}>{busy==="annual"?"...":"$29.99/yr"}</button>
+        </div>
+        <button onClick={onClose} style={{width:"100%",fontFamily:SN,fontSize:9,color:P.fn,background:"transparent",border:"none",padding:"10px 0 0",cursor:"pointer",letterSpacing:1,position:"relative",zIndex:1}}>not yet</button>
+      </div>
     </div>
   );
 }
@@ -831,7 +917,7 @@ export default function Luminary(){
   };
   const[bd,setBd]=useState(null);const[ans,setAns]=useState(null);
   const[chart,setChart]=useState(null);const[reading,setReading]=useState(null);
-  const[bca,setBca]=useState(null);const[err,setErr]=useState(null);const[ukey,setUkey]=useState(null);const[chatMsgs,setChatMsgs]=useState(null);
+  const[bca,setBca]=useState(null);const[err,setErr]=useState(null);const[ukey,setUkey]=useState(null);const[chatMsgs,setChatMsgs]=useState(null);const[plan,setPlan]=useState("free");const[paywall,setPaywall]=useState(null);const[credits,setCredits]=useState(0);
 
   const post=async(url,body)=>{
     const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
@@ -846,18 +932,27 @@ export default function Luminary(){
   useEffect(()=>{
     let saved=null;
     try{saved=JSON.parse(localStorage.getItem("luminary_user")||"null");}catch{}
+    const params=typeof window!=="undefined"?new URLSearchParams(window.location.search):null;
+    const justPurchased=params&&params.get("purchase")==="success";
+    if(justPurchased){try{window.history.replaceState({},"",window.location.pathname);}catch{}}
     if(!saved||!saved.key){setScr("landing");return;}
     (async()=>{
       try{
         const u=await post("/api/user",{action:"get",key:saved.key});
         if(!u.chart)throw new Error("no chart");
+        if(justPurchased){/* webhook may lag checkout redirect — retry fetch for fresh plan */
+          for(let i=0;i<3&&(!u.plan||u.plan!=="plus")&&!(u.deepReportCredits>0);i++){
+            await new Promise(r=>setTimeout(r,2000));
+            try{const u2=await post("/api/user",{action:"get",key:saved.key});Object.assign(u,u2);}catch{}
+          }
+        }
         setChart(u.chart);setReading(u.reading);setBca(u.birthchartAnalysis||null);
-        setBd({name:u.name,ig:u.ig,...(u.birth||{})});setAns(u.answers||null);setUkey(saved.key);setFriends(u.friends||[]);setChatMsgs(u.chatHistory&&u.chatHistory.length>0?u.chatHistory:null);
+        setBd({name:u.name,ig:u.ig,...(u.birth||{})});setAns(u.answers||null);setUkey(saved.key);setFriends(u.friends||[]);setChatMsgs(u.chatHistory&&u.chatHistory.length>0?u.chatHistory:null);setPlan(u.plan||"free");setCredits(u.deepReportCredits||0);
         setScr("reading");
         /* silent refresh: new week, new reading — chart + birth chart stay cached */
         if(u.answers){
           try{
-            const fresh=await post("/api/horoscope",{chartText:u.chart.promptText,name:u.name,...u.answers});
+            const fresh=await post("/api/horoscope",{chartText:u.chart.promptText,name:u.name,...u.answers,plan:u.plan||"free"});
             setReading(fresh);
             saveReading({name:u.name,ig:u.ig,birth:u.birth||null,chart:u.chart,reading:fresh,answers:u.answers,birthchartAnalysis:u.birthchartAnalysis||null});
           }catch{}
@@ -870,7 +965,7 @@ export default function Luminary(){
   const generate=async(b,a)=>{setScr("loading");try{
     const ch=await post("/api/chart",b);setChart(ch);
     const[ho,bc]=await Promise.all([
-      post("/api/horoscope",{chartText:ch.promptText,name:b.name,...a}),
+      post("/api/horoscope",{chartText:ch.promptText,name:b.name,...a,plan}),
       post("/api/birthchart",{chartText:ch.promptText,name:b.name}).catch(e=>{console.error("BC preload:",e);return null;}),
     ]);
     setReading(ho);if(bc)setBca(bc);
@@ -902,6 +997,8 @@ export default function Luminary(){
       <style>{V6CSS}</style>
       <div style={{display:"flex",alignItems:"center",gap:2,padding:"8px 8px",background:"#FFF",borderBottom:"1px solid rgba(42,33,24,0.05)",flexShrink:0,overflowX:"auto",whiteSpace:"nowrap"}}>
         {navItems.map(n=><button key={n.id} onClick={()=>navGo(n.id)} style={navBtn(n.id)}>{n.l}</button>)}
+        {plan==="plus"&&<span style={{fontFamily:SN,fontSize:8,letterSpacing:1,color:P.gold,background:P.goldBg,border:"1px solid rgba(191,140,62,0.2)",padding:"3px 8px",borderRadius:10,marginLeft:4,whiteSpace:"nowrap"}}>✦ PLUS</span>}
+        {plan!=="plus"&&chart&&<button onClick={()=>setPaywall({ctx:"nav"})} style={{fontFamily:SN,fontSize:9,padding:"5px 10px",borderRadius:12,cursor:"pointer",border:"none",background:P.ink,color:"#FAF6F0",marginLeft:4,whiteSpace:"nowrap"}}>✦ Plus</button>}
         <button onClick={shareApp} style={{fontFamily:SN,fontSize:9,padding:"5px 12px",borderRadius:12,cursor:"pointer",border:"1px solid rgba(191,140,62,0.25)",background:P.goldBg,color:P.gold,marginLeft:"auto",whiteSpace:"nowrap"}}>{shared?"✓ Copied":"↗ Share"}</button>
       </div>
       <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
@@ -914,9 +1011,10 @@ export default function Luminary(){
         {scr==="birthchart"&&chart&&<BirthChartScreen chart={chart} analysis={bca} name={bd?.name||""} onChat={()=>setScr("chat")}/>}
         {scr==="humandesign"&&chart&&<HDScreen chart={chart} analysis={bca} name={bd?.name||""} onChat={()=>setScr("chat")}/>}
         {scr==="shareable"&&reading&&chart&&<ShareableScreen reading={reading} name={bd?.name||""} chart={chart} onBack={()=>setScr("reading")}/>}
-        {scr==="friends"&&chart&&<FriendsScreen userChart={chart} userName={bd?.name||""} userBirth={bd?.date||null} friends={friends} setFriends={setFriends} ukey={ukey} post={post} onChat={()=>setScr("chat")}/>}
+        {scr==="friends"&&chart&&<FriendsScreen userChart={chart} userName={bd?.name||""} userBirth={bd?.date||null} friends={friends} setFriends={setFriends} ukey={ukey} post={post} onChat={()=>setScr("chat")} plan={plan} credits={credits} setCredits={setCredits} onPaywall={(ctx)=>setPaywall({ctx})}/>}
         {scr==="feedback"&&<FeedbackScreen name={bd?.name||""} ukey={ukey}/>}
-        {scr==="chat"&&chart&&<ChatScreen chart={chart} name={bd?.name||""} onBack={()=>setScr("reading")} userKey={ukey} initialMsgs={chatMsgs} onSync={setChatMsgs}/>}
+        {paywall&&<Paywall ukey={ukey} heldQuestion={paywall.q||null} context={paywall.ctx||""} onClose={()=>setPaywall(null)}/>}
+        {scr==="chat"&&chart&&<ChatScreen chart={chart} name={bd?.name||""} onBack={()=>setScr("reading")} userKey={ukey} initialMsgs={chatMsgs} onSync={setChatMsgs} plan={plan} onPaywall={(q)=>setPaywall({q,ctx:"chat"})}/>}
         {scr==="error"&&(
           <div style={{flex:1,background:P.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:40,textAlign:"center"}}>
             <p style={{fontFamily:SR,fontSize:22,fontWeight:300,color:P.ink,marginBottom:8}}>Something went wrong</p>
